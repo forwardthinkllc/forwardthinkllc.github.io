@@ -1394,3 +1394,59 @@ body::before {
 .btn-primary { background: var(--gold); color: var(--black); border: 1px solid var(--gold); }
 .btn-primary::after { background: var(--black); }
 .btn-primary:hover { color: var(--gold); border-color: var(--gold); }
+
+
+/* ═══════════════════════════════════════════════
+   INDEX PAGE — BLOG & CALCULATOR TEASER GRIDS
+   ═══════════════════════════════════════════════ */
+
+/* Blog teaser — 3 col desktop */
+.blog-teaser-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+/* Calculator teaser — 2 col desktop */
+.calc-teaser-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(40px, 6vw, 80px);
+  align-items: center;
+}
+
+/* Calculator mini cards — 2x2 desktop */
+.calc-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Tablet — collapse to 1 column */
+@media (max-width: 860px) {
+  .blog-teaser-grid {
+    grid-template-columns: 1fr;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .calc-teaser-grid {
+    grid-template-columns: 1fr;
+  }
+  .calc-cards-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Mobile — single column everything */
+@media (max-width: 540px) {
+  .blog-teaser-grid {
+    grid-template-columns: 1fr;
+    max-width: 100%;
+  }
+  .calc-teaser-grid {
+    grid-template-columns: 1fr;
+  }
+  .calc-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
