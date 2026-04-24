@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
 <title>Human Capital Profit Recovery Calculator | ForwardThink, LLC</title>
-<meta name="description" content="Quantify the hidden economic cost of turnover, leadership misallocation, and under-utilized talent in your organization. Free diagnostic tool from ForwardThink, LLC — Kevin J. Wolsko."/>
+<meta name="description" content="Quantify the hidden economic cost of turnover, leadership misallocation, and under-utilized talent in your organization. Free diagnostic tool from ForwardThink, LLC Kevin J. Wolsko."/>
 <meta name="keywords" content="human capital calculator, turnover cost calculator, people operations ROI, HR metrics, leadership tax, ForwardThink, Kevin Wolsko, business consultant South Florida"/>
 <meta name="robots" content="index, follow"/>
 <meta name="author" content="Kevin J. Wolsko, ForwardThink LLC"/>
@@ -24,153 +24,153 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,500&family=Mulish:wght@200;300;400;500;600&family=Bebas+Neue&display=swap" rel="stylesheet"/>
 <style>
 /* ═══════════════════════════════════════════════════
-   FORWARDTHINK DESIGN TOKENS
+ FORWARDTHINK DESIGN TOKENS
 ═══════════════════════════════════════════════════ */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --black:#0a0908;--ink:#141210;--ink-mid:#1e1b18;--warm:#2a2520;
-  --gold:#c9a84c;--gold-lt:#e8c97a;--gold-dk:#8a6f32;
-  --gold-glow:rgba(201,168,76,.14);
-  --cream:#f5f0e8;--cream-2:#ede6d8;
-  --stone:#b8b0a2;--muted:#7a7268;--white:#ffffff;
-  --risk:#c0603a;--risk-lt:#e07a58;--risk-glow:rgba(192,96,58,.14);
-  --caution:#b8882a;--caution-lt:#d4a44a;
-  --positive:#5a8a52;--positive-lt:#7ab070;--positive-glow:rgba(90,138,82,.14);
-  --border:rgba(201,168,76,.1);--border-2:rgba(201,168,76,.2);
-  --display:'Playfair Display',Georgia,serif;
-  --body:'Mulish',sans-serif;--accent:'Bebas Neue',sans-serif;
-  --ease:cubic-bezier(0.16,1,0.3,1);--nav-h:76px;
+ --black:#0a0908;--ink:#141210;--ink-mid:#1e1b18;--warm:#2a2520;
+ --gold:#c9a84c;--gold-lt:#e8c97a;--gold-dk:#8a6f32;
+ --gold-glow:rgba(201,168,76,.14);
+ --cream:#f5f0e8;--cream-2:#ede6d8;
+ --stone:#b8b0a2;--muted:#7a7268;--white:#ffffff;
+ --risk:#c0603a;--risk-lt:#e07a58;--risk-glow:rgba(192,96,58,.14);
+ --caution:#b8882a;--caution-lt:#d4a44a;
+ --positive:#5a8a52;--positive-lt:#7ab070;--positive-glow:rgba(90,138,82,.14);
+ --border:rgba(201,168,76,.1);--border-2:rgba(201,168,76,.2);
+ --display:'Playfair Display',Georgia,serif;
+ --body:'Mulish',sans-serif;--accent:'Bebas Neue',sans-serif;
+ --ease:cubic-bezier(0.16,1,0.3,1);--nav-h:76px;
 }
 html{scroll-behavior:smooth}
 body{font-family:var(--body);background:var(--black);color:var(--cream);
-     min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+ min-height:100vh;-webkit-font-smoothing:antialiased;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;
-  opacity:.025;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  background-size:180px}
+ opacity:.025;
+ background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+ background-size:180px}
 
 /* NAV */
 .nav{position:fixed;top:0;left:0;right:0;z-index:500;height:var(--nav-h);
-     transition:background .5s var(--ease),backdrop-filter .5s}
+ transition:background .5s var(--ease),backdrop-filter .5s}
 .nav.scrolled{background:rgba(10,9,8,.92);backdrop-filter:blur(20px);
-              border-bottom:1px solid var(--border)}
+ border-bottom:1px solid var(--border)}
 .nav-inner{max-width:1320px;margin:0 auto;padding:0 clamp(24px,5vw,80px);
-           height:100%;display:flex;align-items:center;justify-content:space-between}
+ height:100%;display:flex;align-items:center;justify-content:space-between}
 .nav-logo{font-family:var(--display);font-size:20px;font-weight:400;
-          color:var(--cream);text-decoration:none;letter-spacing:.03em}
+ color:var(--cream);text-decoration:none;letter-spacing:.03em}
 .nav-logo em{font-style:italic;color:var(--gold)}
 .nav-links{display:flex;align-items:center;gap:clamp(16px,3vw,40px);list-style:none}
 .nav-links a{font-family:var(--accent);font-size:12px;letter-spacing:.2em;
-             color:var(--stone);text-decoration:none;transition:color .25s}
+ color:var(--stone);text-decoration:none;transition:color .25s}
 .nav-links a:hover,.nav-links a.active{color:var(--gold)}
 .nav-links .nav-cta a{color:var(--gold);border:1px solid rgba(201,168,76,.4);
-                      padding:9px 20px;transition:all .3s}
+ padding:9px 20px;transition:all .3s}
 .nav-links .nav-cta a:hover{background:var(--gold);color:var(--black);border-color:var(--gold)}
 .hamburger{display:none;flex-direction:column;gap:6px;background:none;
-           border:none;cursor:pointer;padding:4px}
+ border:none;cursor:pointer;padding:4px}
 .hamburger span{display:block;width:26px;height:1px;background:var(--cream);
-                transition:all .35s var(--ease)}
+ transition:all .35s var(--ease)}
 .hamburger.open span:nth-child(1){transform:rotate(45deg) translate(5px,5px)}
 .hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0)}
 .hamburger.open span:nth-child(3){transform:rotate(-45deg) translate(5px,-5px)}
 .mobile-nav{display:none;position:fixed;inset:var(--nav-h) 0 0;
-            background:var(--black);z-index:499;
-            padding:48px clamp(24px,5vw,80px);flex-direction:column;gap:8px;
-            border-top:1px solid var(--border)}
+ background:var(--black);z-index:499;
+ padding:48px clamp(24px,5vw,80px);flex-direction:column;gap:8px;
+ border-top:1px solid var(--border)}
 .mobile-nav.open{display:flex}
 .mobile-nav a{font-family:var(--display);font-size:clamp(28px,6vw,48px);
-              font-weight:400;color:var(--cream);text-decoration:none;
-              padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);
-              transition:color .25s}
+ font-weight:400;color:var(--cream);text-decoration:none;
+ padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);
+ transition:color .25s}
 .mobile-nav a:hover{color:var(--gold)}
 .mobile-nav .m-cta{margin-top:24px;font-family:var(--accent);font-size:14px;
-                   letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold);
-                   padding:18px 32px;text-align:center;display:block;transition:all .3s}
+ letter-spacing:.2em;color:var(--gold);border:1px solid var(--gold);
+ padding:18px 32px;text-align:center;display:block;transition:all .3s}
 .mobile-nav .m-cta:hover{background:var(--gold);color:var(--black)}
 
 /* PAGE HERO */
 .page-hero{padding:calc(var(--nav-h) + clamp(48px,7vw,96px)) clamp(24px,5vw,80px) clamp(32px,4vw,56px);
-           max-width:1320px;margin:0 auto;position:relative;overflow:hidden}
+ max-width:1320px;margin:0 auto;position:relative;overflow:hidden}
 .page-hero::before{content:'';position:absolute;top:-20%;right:-5%;width:700px;height:500px;
-  background:radial-gradient(ellipse,var(--gold-glow) 0%,transparent 65%);pointer-events:none}
+ background:radial-gradient(ellipse,var(--gold-glow) 0%,transparent 65%);pointer-events:none}
 .eyebrow{font-family:var(--accent);font-size:13px;letter-spacing:.28em;color:var(--gold);
-         display:flex;align-items:center;gap:16px;margin-bottom:20px;
-         animation:fadeUp .8s var(--ease) both}
+ display:flex;align-items:center;gap:16px;margin-bottom:20px;
+ animation:fadeUp .8s var(--ease) both}
 .eyebrow::before{content:'';display:block;width:40px;height:1px;
-                 background:var(--gold);flex-shrink:0}
+ background:var(--gold);flex-shrink:0}
 .page-hero h1{font-family:var(--display);font-size:clamp(28px,4.5vw,62px);font-weight:400;
-              line-height:1.08;letter-spacing:-.025em;color:var(--cream);max-width:900px;
-              margin-bottom:16px;animation:fadeUp .85s var(--ease) .1s both}
+ line-height:1.08;letter-spacing:-.025em;color:var(--cream);max-width:900px;
+ margin-bottom:16px;animation:fadeUp .85s var(--ease) .1s both}
 .page-hero h1 em{font-style:italic;color:var(--gold-lt)}
 .page-hero p{font-size:clamp(14px,1.4vw,17px);font-weight:300;color:var(--stone);
-             max-width:620px;line-height:1.85;animation:fadeUp .85s var(--ease) .2s both}
+ max-width:620px;line-height:1.85;animation:fadeUp .85s var(--ease) .2s both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:none}}
 
 /* CALC LAYOUT */
 .calc-wrap{max-width:1320px;margin:0 auto;
-           padding:0 clamp(24px,5vw,80px) clamp(80px,10vw,140px);
-           display:grid;grid-template-columns:420px 1fr;gap:32px;align-items:start}
+ padding:0 clamp(24px,5vw,80px) clamp(80px,10vw,140px);
+ display:grid;grid-template-columns:420px 1fr;gap:32px;align-items:start}
 
 /* INPUT PANEL */
 .input-panel{background:var(--ink-mid);border:1px solid var(--border-2);
-             overflow:hidden;animation:fadeUp .9s var(--ease) .15s both;
-             position:sticky;top:calc(var(--nav-h) + 16px)}
+ overflow:hidden;animation:fadeUp .9s var(--ease) .15s both;
+ position:sticky;top:calc(var(--nav-h) + 16px)}
 .panel-header{padding:18px 24px;border-bottom:1px solid var(--border);
-              display:flex;align-items:center;gap:12px}
+ display:flex;align-items:center;gap:12px}
 .panel-dot{width:7px;height:7px;border-radius:50%;background:var(--gold);
-           box-shadow:0 0 10px var(--gold);animation:glow 3s ease-in-out infinite}
+ box-shadow:0 0 10px var(--gold);animation:glow 3s ease-in-out infinite}
 @keyframes glow{0%,100%{opacity:1;box-shadow:0 0 8px var(--gold)}
-                50%{opacity:.5;box-shadow:0 0 4px var(--gold)}}
+ 50%{opacity:.5;box-shadow:0 0 4px var(--gold)}}
 .panel-header h2{font-family:var(--accent);font-size:12px;letter-spacing:.26em;
-                 color:var(--stone);font-weight:400}
+ color:var(--stone);font-weight:400}
 .input-body{padding:24px;display:flex;flex-direction:column;gap:20px}
 
 /* Fields */
 .field{display:flex;flex-direction:column;gap:7px}
 .field-label{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
-             color:var(--stone);display:flex;justify-content:space-between;align-items:center}
+ color:var(--stone);display:flex;justify-content:space-between;align-items:center}
 .field-hint{font-size:10px;font-weight:300;color:var(--muted);
-            text-transform:none;letter-spacing:.04em}
+ text-transform:none;letter-spacing:.04em}
 .input-wrap{position:relative;display:flex;align-items:center}
 .input-prefix{position:absolute;left:13px;font-family:var(--accent);font-size:15px;
-              letter-spacing:.04em;color:var(--muted);pointer-events:none;z-index:1}
+ letter-spacing:.04em;color:var(--muted);pointer-events:none;z-index:1}
 
 input[type="text"],input[type="number"]{
-  width:100%;background:var(--ink);border:1px solid rgba(201,168,76,.15);
-  color:var(--cream);font-family:var(--accent);font-size:20px;letter-spacing:.04em;
-  padding:13px 14px;outline:none;transition:border-color .3s,box-shadow .3s;
-  -webkit-appearance:none}
+ width:100%;background:var(--ink);border:1px solid rgba(201,168,76,.15);
+ color:var(--cream);font-family:var(--accent);font-size:20px;letter-spacing:.04em;
+ padding:13px 14px;outline:none;transition:border-color .3s,box-shadow .3s;
+ -webkit-appearance:none}
 input[type="text"].has-prefix,input[type="number"].has-prefix{padding-left:28px}
 input[type="text"]:focus,input[type="number"]:focus{
-  border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
+ border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
 input::-webkit-inner-spin-button,input::-webkit-outer-spin-button{-webkit-appearance:none}
 
 select{width:100%;background:var(--ink);border:1px solid rgba(201,168,76,.15);
-       color:var(--stone);font-family:var(--body);font-size:14px;font-weight:300;
-       padding:12px 36px 12px 13px;outline:none;cursor:pointer;
-       transition:border-color .3s,color .3s;-webkit-appearance:none;appearance:none;
-       background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a7268'/%3E%3C/svg%3E");
-       background-repeat:no-repeat;background-position:right 13px center}
+ color:var(--stone);font-family:var(--body);font-size:14px;font-weight:300;
+ padding:12px 36px 12px 13px;outline:none;cursor:pointer;
+ transition:border-color .3s,color .3s;-webkit-appearance:none;appearance:none;
+ background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a7268'/%3E%3C/svg%3E");
+ background-repeat:no-repeat;background-position:right 13px center}
 select:focus{border-color:var(--gold);color:var(--cream)}
 select option{background:var(--ink-mid);color:var(--cream)}
 select.has-value{color:var(--cream)}
 
 /* Industry info chip */
 .industry-info{display:none;flex-direction:column;gap:6px;
-               padding:12px 14px;background:rgba(201,168,76,.05);
-               border:1px solid var(--border);margin-top:4px;
-               animation:fadeUp .4s var(--ease) both}
+ padding:12px 14px;background:rgba(201,168,76,.05);
+ border:1px solid var(--border);margin-top:4px;
+ animation:fadeUp .4s var(--ease) both}
 .industry-info.visible{display:flex}
 .info-row{display:flex;justify-content:space-between;align-items:center}
 .info-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
 .info-val{font-family:var(--accent);font-size:15px;letter-spacing:.05em;color:var(--gold-lt)}
 .info-divider{height:1px;background:var(--border);margin:2px 0}
 .info-note{font-size:10px;font-weight:300;color:var(--muted);letter-spacing:.04em;
-           font-style:italic}
+ font-style:italic}
 
 /* Turnover note under slider */
 .turnover-benchmark{display:none;font-size:10px;font-weight:300;color:var(--muted);
-                    letter-spacing:.06em;margin-top:2px;font-style:italic}
+ letter-spacing:.06em;margin-top:2px;font-style:italic}
 .turnover-benchmark.visible{display:block}
 .tb-above{color:var(--risk-lt)}
 .tb-at{color:var(--gold)}
@@ -179,72 +179,72 @@ select.has-value{color:var(--cream)}
 /* Sliders */
 .slider-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
 .slider-val{font-family:var(--accent);font-size:26px;letter-spacing:.04em;
-            color:var(--cream);line-height:1}
+ color:var(--cream);line-height:1}
 .slider-val small{font-size:13px;color:var(--stone);letter-spacing:.06em;margin-left:2px}
 .val-danger{color:var(--risk-lt) !important}
 .val-caution{color:var(--caution-lt) !important}
 
 input[type="range"]{width:100%;-webkit-appearance:none;appearance:none;height:3px;
-  background:var(--ink);outline:none;cursor:pointer;border-radius:2px;margin:4px 0}
+ background:var(--ink);outline:none;cursor:pointer;border-radius:2px;margin:4px 0}
 input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;
-  width:18px;height:18px;border-radius:50%;background:var(--gold);
-  box-shadow:0 0 12px var(--gold-glow),0 2px 6px rgba(0,0,0,.5);cursor:pointer;
-  transition:transform .2s,box-shadow .2s}
+ width:18px;height:18px;border-radius:50%;background:var(--gold);
+ box-shadow:0 0 12px var(--gold-glow),0 2px 6px rgba(0,0,0,.5);cursor:pointer;
+ transition:transform .2s,box-shadow .2s}
 input[type="range"]::-webkit-slider-thumb:hover{transform:scale(1.25);
-  box-shadow:0 0 20px var(--gold-glow),0 2px 10px rgba(0,0,0,.5)}
+ box-shadow:0 0 20px var(--gold-glow),0 2px 10px rgba(0,0,0,.5)}
 input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;
-  background:var(--gold);border:none;cursor:pointer}
+ background:var(--gold);border:none;cursor:pointer}
 .slider-scale{display:flex;justify-content:space-between;font-size:10px;
-              color:var(--muted);letter-spacing:.08em;margin-top:2px}
+ color:var(--muted);letter-spacing:.08em;margin-top:2px}
 .field-divider{height:1px;background:var(--border);margin:4px 0}
 
 /* Run button */
 .run-btn{margin:20px 24px 24px;width:calc(100% - 48px);
-         background:var(--gold);color:var(--black);border:none;
-         font-family:var(--accent);font-size:13px;letter-spacing:.26em;
-         padding:18px 24px;cursor:pointer;display:flex;align-items:center;
-         justify-content:center;gap:14px;transition:all .35s var(--ease);
-         position:relative;overflow:hidden}
+ background:var(--gold);color:var(--black);border:none;
+ font-family:var(--accent);font-size:13px;letter-spacing:.26em;
+ padding:18px 24px;cursor:pointer;display:flex;align-items:center;
+ justify-content:center;gap:14px;transition:all .35s var(--ease);
+ position:relative;overflow:hidden}
 .run-btn::before{content:'';position:absolute;inset:0;
-  background:linear-gradient(135deg,rgba(255,255,255,.18) 0%,transparent 60%);
-  opacity:0;transition:opacity .3s}
+ background:linear-gradient(135deg,rgba(255,255,255,.18) 0%,transparent 60%);
+ opacity:0;transition:opacity .3s}
 .run-btn:hover{background:var(--gold-lt);transform:translateY(-1px);
-               box-shadow:0 10px 36px var(--gold-glow)}
+ box-shadow:0 10px 36px var(--gold-glow)}
 .run-btn:hover::before{opacity:1}
 .run-btn:active{transform:none}
 .run-btn:disabled{background:var(--muted);color:var(--warm);
-                  cursor:not-allowed;transform:none;box-shadow:none}
+ cursor:not-allowed;transform:none;box-shadow:none}
 .run-btn-arrow{width:20px;height:1px;background:currentColor;
-               position:relative;transition:width .3s;flex-shrink:0}
+ position:relative;transition:width .3s;flex-shrink:0}
 .run-btn-arrow::after{content:'';position:absolute;right:0;top:-4px;
-  width:8px;height:8px;border-right:1px solid currentColor;
-  border-top:1px solid currentColor;transform:rotate(45deg)}
+ width:8px;height:8px;border-right:1px solid currentColor;
+ border-top:1px solid currentColor;transform:rotate(45deg)}
 .run-btn:hover:not(:disabled) .run-btn-arrow{width:28px}
 
 /* OUTPUT PANEL */
 .output-panel{display:flex;flex-direction:column;gap:24px;
-              animation:fadeUp .9s var(--ease) .25s both}
+ animation:fadeUp .9s var(--ease) .25s both}
 
 /* Placeholder */
 .output-placeholder{border:1px solid var(--border);padding:clamp(48px,8vw,80px) 40px;
-                    text-align:center;display:flex;flex-direction:column;
-                    align-items:center;gap:20px;background:var(--ink-mid)}
+ text-align:center;display:flex;flex-direction:column;
+ align-items:center;gap:20px;background:var(--ink-mid)}
 .placeholder-icon{width:72px;height:72px;border:1px solid var(--border-2);border-radius:50%;
-                  display:flex;align-items:center;justify-content:center;position:relative}
+ display:flex;align-items:center;justify-content:center;position:relative}
 .placeholder-icon::before{content:'';position:absolute;inset:-8px;border-radius:50%;
-  border:1px solid var(--border);animation:ringPulse 4s ease-in-out infinite}
+ border:1px solid var(--border);animation:ringPulse 4s ease-in-out infinite}
 @keyframes ringPulse{0%,100%{opacity:.4;transform:scale(1)}50%{opacity:.8;transform:scale(1.04)}}
 .placeholder-icon svg{width:28px;height:28px;opacity:.35}
 .placeholder-title{font-family:var(--display);font-size:clamp(20px,2.5vw,28px);
-                   font-weight:400;font-style:italic;color:var(--stone);letter-spacing:-.01em}
+ font-weight:400;font-style:italic;color:var(--stone);letter-spacing:-.01em}
 .placeholder-sub{font-size:14px;font-weight:300;color:var(--muted);
-                 max-width:400px;line-height:1.8}
+ max-width:400px;line-height:1.8}
 .placeholder-steps{display:flex;flex-direction:column;gap:10px;text-align:left;margin-top:8px}
 .placeholder-step{display:flex;align-items:center;gap:14px}
 .step-num{width:24px;height:24px;border:1px solid var(--border-2);border-radius:50%;
-          display:flex;align-items:center;justify-content:center;
-          font-family:var(--accent);font-size:11px;letter-spacing:.1em;
-          color:var(--gold);flex-shrink:0}
+ display:flex;align-items:center;justify-content:center;
+ font-family:var(--accent);font-size:11px;letter-spacing:.1em;
+ color:var(--gold);flex-shrink:0}
 .step-text{font-size:13px;font-weight:300;color:var(--muted);letter-spacing:.02em}
 .step-text em{color:var(--stone);font-style:normal}
 
@@ -254,41 +254,41 @@ input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;
 
 /* Recovery card */
 .recovery-card{background:var(--ink-mid);border:1px solid var(--border-2);
-               padding:clamp(28px,4vw,48px);position:relative;overflow:hidden}
+ padding:clamp(28px,4vw,48px);position:relative;overflow:hidden}
 .recovery-card::before{content:'';position:absolute;top:-40%;right:-10%;
-  width:500px;height:400px;
-  background:radial-gradient(ellipse,var(--gold-glow) 0%,transparent 65%);pointer-events:none}
+ width:500px;height:400px;
+ background:radial-gradient(ellipse,var(--gold-glow) 0%,transparent 65%);pointer-events:none}
 .recovery-eyebrow{font-family:var(--accent);font-size:11px;letter-spacing:.28em;color:var(--gold);
-                  display:flex;align-items:center;gap:12px;margin-bottom:14px}
+ display:flex;align-items:center;gap:12px;margin-bottom:14px}
 .recovery-eyebrow::before{content:'';display:block;width:28px;height:1px;background:var(--gold)}
 .recovery-amount{font-family:var(--display);font-size:clamp(40px,6vw,80px);font-weight:500;
-                 color:var(--gold-lt);line-height:.95;letter-spacing:-.025em;
-                 margin-bottom:10px;position:relative;z-index:1}
+ color:var(--gold-lt);line-height:.95;letter-spacing:-.025em;
+ margin-bottom:10px;position:relative;z-index:1}
 .recovery-sublabel{font-size:13px;font-weight:300;color:var(--stone);line-height:1.7;
-                   max-width:600px;position:relative;z-index:1}
+ max-width:600px;position:relative;z-index:1}
 
 /* Rev row */
 .rev-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .rev-card{background:var(--ink);border:1px solid var(--border);
-          padding:20px 22px;position:relative;overflow:hidden}
+ padding:20px 22px;position:relative;overflow:hidden}
 .rev-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
 .rev-card.gold::after{background:linear-gradient(90deg,var(--gold),transparent)}
 .rev-card.stone::after{background:linear-gradient(90deg,var(--muted),transparent)}
 .rev-label{font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;
-           color:var(--muted);margin-bottom:10px;display:block}
+ color:var(--muted);margin-bottom:10px;display:block}
 .rev-val{font-family:var(--display);font-size:clamp(22px,2.8vw,36px);font-weight:400;
-         letter-spacing:-.015em;color:var(--gold-lt);display:block;margin-bottom:6px;line-height:1}
+ letter-spacing:-.015em;color:var(--gold-lt);display:block;margin-bottom:6px;line-height:1}
 .rev-sub{font-size:11px;font-weight:300;color:var(--muted);letter-spacing:.04em}
 .benchmark-delta{display:inline-flex;align-items:center;gap:5px;
-                 font-family:var(--accent);font-size:12px;letter-spacing:.12em;
-                 padding:3px 8px;margin-top:8px}
+ font-family:var(--accent);font-size:12px;letter-spacing:.12em;
+ padding:3px 8px;margin-top:8px}
 .delta-above{background:rgba(90,138,82,.12);color:var(--positive-lt)}
 .delta-below{background:rgba(192,96,58,.12);color:var(--risk-lt)}
 
 /* Insight cards */
 .insight-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
 .insight-card{background:var(--ink-mid);border:1px solid var(--border);padding:22px;
-              position:relative;overflow:hidden;transition:border-color .3s,transform .35s var(--ease)}
+ position:relative;overflow:hidden;transition:border-color .3s,transform .35s var(--ease)}
 .insight-card:hover{transform:translateY(-3px)}
 .insight-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
 .card-risk::after{background:linear-gradient(90deg,var(--risk),transparent)}
@@ -302,9 +302,9 @@ input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;
 .card-caution .insight-tag{color:var(--caution-lt)}
 .card-positive .insight-tag{color:var(--positive-lt)}
 .insight-name{font-family:var(--display);font-size:15px;font-style:italic;font-weight:400;
-              color:var(--cream);margin-bottom:14px;line-height:1.3;letter-spacing:-.01em}
+ color:var(--cream);margin-bottom:14px;line-height:1.3;letter-spacing:-.01em}
 .insight-amount{font-family:var(--display);font-size:clamp(24px,3vw,38px);font-weight:500;
-                line-height:1;margin-bottom:10px;letter-spacing:-.015em}
+ line-height:1;margin-bottom:10px;letter-spacing:-.015em}
 .card-risk .insight-amount{color:var(--risk-lt)}
 .card-caution .insight-amount{color:var(--caution-lt)}
 .card-positive .insight-amount{color:var(--positive-lt)}
@@ -313,21 +313,21 @@ input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;
 /* Risk panel */
 .risk-panel{background:var(--ink-mid);border:1px solid var(--border);overflow:hidden}
 .risk-header{padding:15px 22px;border-bottom:1px solid var(--border);
-             display:flex;align-items:center;gap:10px}
+ display:flex;align-items:center;gap:10px}
 .risk-dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
 .risk-header h3{font-family:var(--accent);font-size:11px;letter-spacing:.24em;
-                color:var(--stone);font-weight:400}
+ color:var(--stone);font-weight:400}
 .risk-body{padding:16px 22px;display:flex;flex-direction:column;gap:10px}
 .risk-flag{display:flex;align-items:flex-start;gap:14px;padding:14px 16px;
-           border:1px solid transparent;opacity:.3;
-           transition:opacity .5s var(--ease),background .5s,border-color .5s;
-           pointer-events:none}
+ border:1px solid transparent;opacity:.3;
+ transition:opacity .5s var(--ease),background .5s,border-color .5s;
+ pointer-events:none}
 .risk-flag.active{opacity:1;pointer-events:auto}
 .risk-flag.active.flag-risk{background:rgba(192,96,58,.06);border-color:rgba(192,96,58,.18)}
 .risk-flag.active.flag-caution{background:rgba(184,136,42,.06);border-color:rgba(184,136,42,.18)}
 .risk-flag.active.flag-positive{background:rgba(90,138,82,.06);border-color:rgba(90,138,82,.18)}
 .flag-marker{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;
-             justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;font-weight:600}
+ justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px;font-weight:600}
 .flag-risk .flag-marker{background:rgba(192,96,58,.15);color:var(--risk-lt)}
 .flag-caution .flag-marker{background:rgba(184,136,42,.15);color:var(--caution-lt)}
 .flag-positive .flag-marker{background:rgba(90,138,82,.15);color:var(--positive-lt)}
@@ -339,68 +339,68 @@ input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;
 
 /* CTA */
 .cta-band{background:linear-gradient(135deg,var(--ink-mid) 0%,rgba(201,168,76,.06) 100%);
-          border:1px solid var(--border-2);padding:clamp(24px,3vw,40px);
-          display:flex;align-items:center;justify-content:space-between;gap:28px;flex-wrap:wrap}
+ border:1px solid var(--border-2);padding:clamp(24px,3vw,40px);
+ display:flex;align-items:center;justify-content:space-between;gap:28px;flex-wrap:wrap}
 .cta-text h3{font-family:var(--display);font-size:clamp(18px,2.2vw,28px);font-weight:400;
-             color:var(--cream);margin-bottom:6px;letter-spacing:-.015em}
+ color:var(--cream);margin-bottom:6px;letter-spacing:-.015em}
 .cta-text h3 em{font-style:italic;color:var(--gold-lt)}
 .cta-text p{font-size:13px;font-weight:300;color:var(--stone);line-height:1.75;max-width:440px}
 .cta-btn{background:var(--gold);color:var(--black);border:none;font-family:var(--accent);
-         font-size:12px;letter-spacing:.24em;padding:17px 32px;cursor:pointer;
-         white-space:nowrap;flex-shrink:0;transition:all .35s var(--ease);
-         display:flex;align-items:center;gap:12px;text-decoration:none}
+ font-size:12px;letter-spacing:.24em;padding:17px 32px;cursor:pointer;
+ white-space:nowrap;flex-shrink:0;transition:all .35s var(--ease);
+ display:flex;align-items:center;gap:12px;text-decoration:none}
 .cta-btn:hover{background:var(--gold-lt);transform:translateY(-2px);box-shadow:0 10px 32px var(--gold-glow)}
 .cta-btn-arrow{width:18px;height:1px;background:currentColor;position:relative;transition:width .3s}
 .cta-btn-arrow::after{content:'';position:absolute;right:0;top:-4px;width:8px;height:8px;
-  border-right:1px solid currentColor;border-top:1px solid currentColor;transform:rotate(45deg)}
+ border-right:1px solid currentColor;border-top:1px solid currentColor;transform:rotate(45deg)}
 .cta-btn:hover .cta-btn-arrow{width:26px}
 
 .disclaimer{font-size:11px;font-weight:300;color:var(--muted);text-align:center;
-            line-height:1.75;letter-spacing:.03em;padding:0 16px}
+ line-height:1.75;letter-spacing:.03em;padding:0 16px}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(10,9,8,.88);
-               backdrop-filter:blur(12px);z-index:999;
-               display:flex;align-items:center;justify-content:center;padding:24px;
-               opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
+ backdrop-filter:blur(12px);z-index:999;
+ display:flex;align-items:center;justify-content:center;padding:24px;
+ opacity:0;pointer-events:none;transition:opacity .4s var(--ease)}
 .modal-overlay.open{opacity:1;pointer-events:all}
 .modal{background:var(--ink-mid);border:1px solid var(--border-2);
-       width:100%;max-width:500px;padding:clamp(28px,4vw,48px);
-       position:relative;transform:translateY(28px) scale(.97);
-       transition:transform .45s var(--ease)}
+ width:100%;max-width:500px;padding:clamp(28px,4vw,48px);
+ position:relative;transform:translateY(28px) scale(.97);
+ transition:transform .45s var(--ease)}
 .modal-overlay.open .modal{transform:none}
 .modal-close{position:absolute;top:16px;right:16px;width:32px;height:32px;
-             background:var(--ink);border:1px solid var(--border);cursor:pointer;
-             display:flex;align-items:center;justify-content:center;
-             color:var(--stone);font-size:14px;transition:all .2s}
+ background:var(--ink);border:1px solid var(--border);cursor:pointer;
+ display:flex;align-items:center;justify-content:center;
+ color:var(--stone);font-size:14px;transition:all .2s}
 .modal-close:hover{border-color:var(--risk-lt);color:var(--risk-lt)}
 .modal-eyebrow{font-family:var(--accent);font-size:11px;letter-spacing:.28em;
-               color:var(--gold);margin-bottom:12px}
+ color:var(--gold);margin-bottom:12px}
 .modal h2{font-family:var(--display);font-size:clamp(24px,3vw,34px);font-weight:400;
-          color:var(--cream);letter-spacing:-.02em;margin-bottom:6px}
+ color:var(--cream);letter-spacing:-.02em;margin-bottom:6px}
 .modal h2 em{font-style:italic;color:var(--gold-lt)}
 .modal-sub{font-size:13px;font-weight:300;color:var(--stone);line-height:1.75;margin-bottom:28px}
 .modal-form{display:flex;flex-direction:column;gap:12px}
 .modal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .modal-input{background:var(--ink);border:1px solid rgba(201,168,76,.15);color:var(--cream);
-             font-family:var(--body);font-size:14px;font-weight:300;
-             padding:13px 14px;outline:none;width:100%;
-             transition:border-color .25s,box-shadow .25s}
+ font-family:var(--body);font-size:14px;font-weight:300;
+ padding:13px 14px;outline:none;width:100%;
+ transition:border-color .25s,box-shadow .25s}
 .modal-input::placeholder{color:var(--muted)}
 .modal-input:focus{border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-glow)}
 .modal-input.error{border-color:var(--risk);box-shadow:0 0 0 3px var(--risk-glow)}
 .modal-submit{background:var(--gold);color:var(--black);border:none;
-              font-family:var(--accent);font-size:13px;letter-spacing:.24em;
-              padding:17px;cursor:pointer;width:100%;margin-top:4px;
-              transition:all .35s var(--ease)}
+ font-family:var(--accent);font-size:13px;letter-spacing:.24em;
+ padding:17px;cursor:pointer;width:100%;margin-top:4px;
+ transition:all .35s var(--ease)}
 .modal-submit:hover{background:var(--gold-lt);box-shadow:0 8px 28px var(--gold-glow)}
 .modal-legal{font-size:10px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.7}
 .modal-success{display:none;text-align:center;padding:16px 0}
 .success-check{width:56px;height:56px;border-radius:50%;border:1px solid var(--border-2);
-               display:flex;align-items:center;justify-content:center;
-               margin:0 auto 20px;font-size:22px;color:var(--gold)}
+ display:flex;align-items:center;justify-content:center;
+ margin:0 auto 20px;font-size:22px;color:var(--gold)}
 .modal-success h3{font-family:var(--display);font-size:28px;font-weight:400;
-                  color:var(--gold-lt);margin-bottom:10px;letter-spacing:-.015em}
+ color:var(--gold-lt);margin-bottom:10px;letter-spacing:-.015em}
 .modal-success p{font-size:13px;font-weight:300;color:var(--stone);line-height:1.75}
 
 @keyframes countIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -409,375 +409,375 @@ input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;
 /* FOOTER */
 .footer{background:var(--black);border-top:1px solid var(--border);padding:clamp(40px,6vw,80px) 0}
 .footer-inner{max-width:1320px;margin:0 auto;padding:0 clamp(24px,5vw,80px);
-              display:flex;justify-content:space-between;align-items:flex-end;gap:40px;flex-wrap:wrap}
+ display:flex;justify-content:space-between;align-items:flex-end;gap:40px;flex-wrap:wrap}
 .footer-brand .logo{font-family:var(--display);font-size:18px;font-weight:400;
-                    color:var(--cream);letter-spacing:.02em;margin-bottom:6px}
+ color:var(--cream);letter-spacing:.02em;margin-bottom:6px}
 .footer-brand .logo em{font-style:italic;color:var(--gold)}
 .footer-brand p{font-size:12px;font-weight:300;color:var(--muted);letter-spacing:.06em}
 .footer-nav{display:flex;gap:clamp(16px,3vw,36px);flex-wrap:wrap;align-items:center}
 .footer-nav a{font-size:11px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;
-              color:var(--muted);text-decoration:none;transition:color .25s}
+ color:var(--muted);text-decoration:none;transition:color .25s}
 .footer-nav a:hover{color:var(--gold)}
 .footer-copy{font-size:11px;color:rgba(122,114,104,.4);letter-spacing:.06em;
-             margin-top:8px;text-align:right}
+ margin-top:8px;text-align:right}
 
 /* RESPONSIVE */
 @media(max-width:1050px){
-  .calc-wrap{grid-template-columns:1fr}
-  .input-panel{position:static}
-  .rev-row{grid-template-columns:1fr 1fr}}
+ .calc-wrap{grid-template-columns:1fr}
+ .input-panel{position:static}
+ .rev-row{grid-template-columns:1fr 1fr}}
 @media(max-width:900px){
-  .nav-links{display:none}
-  .hamburger{display:flex}
-  .insight-row{grid-template-columns:1fr 1fr}}
+ .nav-links{display:none}
+ .hamburger{display:flex}
+ .insight-row{grid-template-columns:1fr 1fr}}
 @media(max-width:640px){
-  .insight-row{grid-template-columns:1fr}
-  .rev-row{grid-template-columns:1fr}
-  .cta-band{flex-direction:column}
-  .cta-btn{width:100%;justify-content:center}
-  .modal-grid{grid-template-columns:1fr}
-  .footer-inner{flex-direction:column;align-items:flex-start}
-  .footer-copy{text-align:left}}
+ .insight-row{grid-template-columns:1fr}
+ .rev-row{grid-template-columns:1fr}
+ .cta-band{flex-direction:column}
+ .cta-btn{width:100%;justify-content:center}
+ .modal-grid{grid-template-columns:1fr}
+ .footer-inner{flex-direction:column;align-items:flex-start}
+ .footer-copy{text-align:left}}
 </style>
 </head>
 <body>
 
 <!-- NAV -->
 <nav class="nav scrolled" id="nav">
-  <div class="nav-inner">
-    <a href="index.html" class="nav-logo">Forward<em>Think</em></a>
-    <ul class="nav-links">
-      <li><a href="index.html#philosophy">Philosophy</a></li>
-      <li><a href="index.html#work">The Work</a></li>
-      <li><a href="index.html#about">About</a></li>
-      <li><a href="blog.html">Blog</a></li>
-      <li><a href="calculator.html" style="color:var(--gold)">Calculator</a></li>
-      <li class="nav-cta"><a href="https://outlook.office.com/bookwithme/user/ebe4e0ad7fc94483965a60c41dfaedb8@insperity.com?anonymous&ismsaljsauthenabled&ep=plink" target="_blank">Book a Call</a></li>
-    </ul>
-    <button class="hamburger" id="ham" aria-label="Menu">
-      <span></span><span></span><span></span>
-    </button>
-  </div>
+ <div class="nav-inner">
+ <a href="index.html" class="nav-logo">Forward<em>Think</em></a>
+ <ul class="nav-links">
+ <li><a href="index.html#philosophy">Philosophy</a></li>
+ <li><a href="index.html#work">The Work</a></li>
+ <li><a href="index.html#about">About</a></li>
+ <li><a href="blog.html">Blog</a></li>
+ <li><a href="calculator.html" style="color:var(--gold)">Calculator</a></li>
+ <li class="nav-cta"><a href="https://outlook.office.com/bookwithme/user/ebe4e0ad7fc94483965a60c41dfaedb8@insperity.com?anonymous&ismsaljsauthenabled&ep=plink" target="_blank">Book a Call</a></li>
+ </ul>
+ <button class="hamburger" id="ham" aria-label="Menu">
+ <span></span><span></span><span></span>
+ </button>
+ </div>
 </nav>
 <div class="mobile-nav" id="mobileNav">
-  <a href="index.html">Home</a>
-  <a href="index.html#philosophy">Philosophy</a>
-  <a href="index.html#work">The Work</a>
-  <a href="index.html#about">About</a>
-  <a href="blog.html">Blog</a>
-  <a href="calculator.html">Calculator</a>
-  <a href="https://outlook.office.com/bookwithme/user/ebe4e0ad7fc94483965a60c41dfaedb8@insperity.com?anonymous&ismsaljsauthenabled&ep=plink" target="_blank" class="m-cta">Book a Call</a>
+ <a href="index.html">Home</a>
+ <a href="index.html#philosophy">Philosophy</a>
+ <a href="index.html#work">The Work</a>
+ <a href="index.html#about">About</a>
+ <a href="blog.html">Blog</a>
+ <a href="calculator.html">Calculator</a>
+ <a href="https://outlook.office.com/bookwithme/user/ebe4e0ad7fc94483965a60c41dfaedb8@insperity.com?anonymous&ismsaljsauthenabled&ep=plink" target="_blank" class="m-cta">Book a Call</a>
 </div>
 
 
 <!-- HERO -->
 <div class="page-hero">
-  <div class="eyebrow">Diagnostic Framework</div>
-  <h1>Human Capital Profit Recovery <em>&amp; Performance Calculator</em></h1>
-  <p>Most business problems have a people solution. This tool quantifies the hidden economic drag inside your organization — and surfaces the recovery potential that optimized people operations can unlock.</p>
+ <div class="eyebrow">Diagnostic Framework</div>
+ <h1>Human Capital Profit Recovery <em>&amp; Performance Calculator</em></h1>
+ <p>Most business problems have a people solution. This tool quantifies the hidden economic drag inside your organization and surfaces the recovery potential that optimized people operations can unlock.</p>
 </div>
 
 <!-- CALCULATOR -->
 <div class="calc-wrap">
 
-  <!-- LEFT: INPUTS -->
-  <div class="input-panel">
-    <div class="panel-header">
-      <div class="panel-dot"></div>
-      <h2>Organizational Inputs</h2>
-    </div>
-    <div class="input-body">
+ <!-- LEFT: INPUTS -->
+ <div class="input-panel">
+ <div class="panel-header">
+ <div class="panel-dot"></div>
+ <h2>Organizational Inputs</h2>
+ </div>
+ <div class="input-body">
 
-      <!-- Industry -->
-      <div class="field">
-        <label class="field-label" for="industry">
-          Industry
-          <span class="field-hint">Drives all benchmarks</span>
-        </label>
-        <select id="industry" onchange="onIndustryChange()" aria-label="Select your industry">
-          <option value="" disabled selected>Select your industry...</option>
-          <option value="professional_services">Professional Services</option>
-          <option value="technology">Technology &amp; Software</option>
-          <option value="financial_services">Financial Services</option>
-          <option value="healthcare_services">Healthcare Services</option>
-          <option value="legal_services">Legal Services</option>
-          <option value="manufacturing">Manufacturing</option>
-          <option value="retail_wholesale">Retail &amp; Wholesale</option>
-          <option value="construction_engineering">Construction &amp; Engineering</option>
-          <option value="nonprofit_education">Nonprofit &amp; Education</option>
-          <option value="real_estate">Real Estate &amp; Property</option>
-          <option value="other">Other / General</option>
-        </select>
-        <!-- Industry benchmarks — revealed on selection -->
-        <div class="industry-info" id="industryInfo">
-          <div class="info-row">
-            <span class="info-label">Rev / Employee Benchmark</span>
-            <span class="info-val" id="infoRevBench">—</span>
-          </div>
-          <div class="info-divider"></div>
-          <div class="info-row">
-            <span class="info-label">Avg Industry Turnover</span>
-            <span class="info-val" id="infoTurnover">—</span>
-          </div>
-          <div class="info-note" id="infoNote">Adjust the slider below to reflect your organization.</div>
-        </div>
-      </div>
+ <!-- Industry -->
+ <div class="field">
+ <label class="field-label" for="industry">
+ Industry
+ <span class="field-hint">Drives all benchmarks</span>
+ </label>
+ <select id="industry" onchange="onIndustryChange()" aria-label="Select your industry">
+ <option value="" disabled selected>Select your industry...</option>
+ <option value="professional_services">Professional Services</option>
+ <option value="technology">Technology &amp; Software</option>
+ <option value="financial_services">Financial Services</option>
+ <option value="healthcare_services">Healthcare Services</option>
+ <option value="legal_services">Legal Services</option>
+ <option value="manufacturing">Manufacturing</option>
+ <option value="retail_wholesale">Retail &amp; Wholesale</option>
+ <option value="construction_engineering">Construction &amp; Engineering</option>
+ <option value="nonprofit_education">Nonprofit &amp; Education</option>
+ <option value="real_estate">Real Estate &amp; Property</option>
+ <option value="other">Other / General</option>
+ </select>
+ <!-- Industry benchmarks revealed on selection -->
+ <div class="industry-info" id="industryInfo">
+ <div class="info-row">
+ <span class="info-label">Rev / Employee Benchmark</span>
+ <span class="info-val" id="infoRevBench"> </span>
+ </div>
+ <div class="info-divider"></div>
+ <div class="info-row">
+ <span class="info-label">Avg Industry Turnover</span>
+ <span class="info-val" id="infoTurnover"> </span>
+ </div>
+ <div class="info-note" id="infoNote">Adjust the slider below to reflect your organization.</div>
+ </div>
+ </div>
 
-      <div class="field-divider"></div>
+ <div class="field-divider"></div>
 
-      <!-- Annual Revenue -->
-      <div class="field">
-        <label class="field-label" for="revenue">
-          Annual Revenue
-          <span class="field-hint">Total top-line</span>
-        </label>
-        <div class="input-wrap">
-          <span class="input-prefix">$</span>
-          <input type="text" id="revenue" class="has-prefix" placeholder="5,000,000"
-            oninput="fmtCurrency(this)" onblur="fmtCurrency(this)" aria-label="Annual Revenue"/>
-        </div>
-      </div>
+ <!-- Annual Revenue -->
+ <div class="field">
+ <label class="field-label" for="revenue">
+ Annual Revenue
+ <span class="field-hint">Total top-line</span>
+ </label>
+ <div class="input-wrap">
+ <span class="input-prefix">$</span>
+ <input type="text" id="revenue" class="has-prefix" placeholder="5,000,000"
+ oninput="fmtCurrency(this)" onblur="fmtCurrency(this)" aria-label="Annual Revenue"/>
+ </div>
+ </div>
 
-      <!-- Total Headcount -->
-      <div class="field">
-        <label class="field-label" for="headcount">
-          Total Headcount
-          <span class="field-hint">Full-time employees</span>
-        </label>
-        <div class="input-wrap">
-          <input type="number" id="headcount" placeholder="50" min="1" step="1"
-            oninput="checkReady()" aria-label="Total Headcount"/>
-        </div>
-      </div>
+ <!-- Total Headcount -->
+ <div class="field">
+ <label class="field-label" for="headcount">
+ Total Headcount
+ <span class="field-hint">Full-time employees</span>
+ </label>
+ <div class="input-wrap">
+ <input type="number" id="headcount" placeholder="50" min="1" step="1"
+ oninput="checkReady()" aria-label="Total Headcount"/>
+ </div>
+ </div>
 
-      <!-- Average Salary -->
-      <div class="field">
-        <label class="field-label" for="salary">
-          Average Annual Salary
-          <span class="field-hint">Per employee</span>
-        </label>
-        <div class="input-wrap">
-          <span class="input-prefix">$</span>
-          <input type="text" id="salary" class="has-prefix" placeholder="65,000"
-            oninput="fmtCurrency(this)" onblur="fmtCurrency(this)" aria-label="Average Annual Salary"/>
-        </div>
-      </div>
+ <!-- Average Salary -->
+ <div class="field">
+ <label class="field-label" for="salary">
+ Average Annual Salary
+ <span class="field-hint">Per employee</span>
+ </label>
+ <div class="input-wrap">
+ <span class="input-prefix">$</span>
+ <input type="text" id="salary" class="has-prefix" placeholder="65,000"
+ oninput="fmtCurrency(this)" onblur="fmtCurrency(this)" aria-label="Average Annual Salary"/>
+ </div>
+ </div>
 
-      <div class="field-divider"></div>
+ <div class="field-divider"></div>
 
-      <!-- Turnover Rate -->
-      <div class="field">
-        <label class="field-label">
-          Annual Turnover Rate
-          <span class="field-hint" id="turnoverHint">Select industry first</span>
-        </label>
-        <div class="slider-row">
-          <div class="slider-val" id="turnoverDisplay">—</div>
-        </div>
-        <input type="range" id="turnover" min="0" max="60" step="1" value="15"
-          oninput="onTurnoverSlider()" aria-label="Annual Turnover Rate"/>
-        <div class="slider-scale"><span>0%</span><span>30%</span><span>60%</span></div>
-        <div class="turnover-benchmark" id="turnoverBenchmark"></div>
-      </div>
+ <!-- Turnover Rate -->
+ <div class="field">
+ <label class="field-label">
+ Annual Turnover Rate
+ <span class="field-hint" id="turnoverHint">Select industry first</span>
+ </label>
+ <div class="slider-row">
+ <div class="slider-val" id="turnoverDisplay"> </div>
+ </div>
+ <input type="range" id="turnover" min="0" max="60" step="1" value="15"
+ oninput="onTurnoverSlider()" aria-label="Annual Turnover Rate"/>
+ <div class="slider-scale"><span>0%</span><span>30%</span><span>60%</span></div>
+ <div class="turnover-benchmark" id="turnoverBenchmark"></div>
+ </div>
 
-      <!-- Admin Hours -->
-      <div class="field">
-        <label class="field-label">
-          Leadership Admin Hours
-          <span class="field-hint">Hours/week on HR &amp; payroll</span>
-        </label>
-        <div class="slider-row">
-          <div class="slider-val" id="adminDisplay">—</div>
-        </div>
-        <input type="range" id="adminHours" min="0" max="30" step="1" value="8"
-          oninput="onAdminSlider()" aria-label="Leadership Admin Hours"/>
-        <div class="slider-scale"><span>0</span><span>15 hrs</span><span>30 hrs</span></div>
-      </div>
+ <!-- Admin Hours -->
+ <div class="field">
+ <label class="field-label">
+ Leadership Admin Hours
+ <span class="field-hint">Hours/week on HR &amp; payroll</span>
+ </label>
+ <div class="slider-row">
+ <div class="slider-val" id="adminDisplay"> </div>
+ </div>
+ <input type="range" id="adminHours" min="0" max="30" step="1" value="8"
+ oninput="onAdminSlider()" aria-label="Leadership Admin Hours"/>
+ <div class="slider-scale"><span>0</span><span>15 hrs</span><span>30 hrs</span></div>
+ </div>
 
-    </div><!-- /input-body -->
+ </div><!-- /input-body -->
 
-    <button class="run-btn" id="runBtn" onclick="calculate()" disabled>
-      <span>Run My Assessment</span>
-      <div class="run-btn-arrow"></div>
-    </button>
-  </div>
+ <button class="run-btn" id="runBtn" onclick="calculate()" disabled>
+ <span>Run My Assessment</span>
+ <div class="run-btn-arrow"></div>
+ </button>
+ </div>
 
-  <!-- RIGHT: OUTPUTS -->
-  <div class="output-panel">
+ <!-- RIGHT: OUTPUTS -->
+ <div class="output-panel">
 
-    <!-- Placeholder -->
-    <div class="output-placeholder" id="outputPlaceholder">
-      <div class="placeholder-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"
-          stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-        </svg>
-      </div>
-      <div class="placeholder-title">Your results will appear here.</div>
-      <p class="placeholder-sub">Complete the inputs on the left to generate your personalized Human Capital Profit Recovery profile.</p>
-      <div class="placeholder-steps">
-        <div class="placeholder-step"><div class="step-num">1</div><div class="step-text">Select your <em>industry</em> to load benchmarks</div></div>
-        <div class="placeholder-step"><div class="step-num">2</div><div class="step-text">Enter <em>revenue, headcount &amp; salary</em></div></div>
-        <div class="placeholder-step"><div class="step-num">3</div><div class="step-text">Adjust sliders to <em>reflect your reality</em></div></div>
-        <div class="placeholder-step"><div class="step-num">4</div><div class="step-text">Click <em>Run My Assessment</em></div></div>
-      </div>
-    </div>
+ <!-- Placeholder -->
+ <div class="output-placeholder" id="outputPlaceholder">
+ <div class="placeholder-icon">
+ <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"
+ stroke-linecap="round" stroke-linejoin="round">
+ <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+ </svg>
+ </div>
+ <div class="placeholder-title">Your results will appear here.</div>
+ <p class="placeholder-sub">Complete the inputs on the left to generate your personalized Human Capital Profit Recovery profile.</p>
+ <div class="placeholder-steps">
+ <div class="placeholder-step"><div class="step-num">1</div><div class="step-text">Select your <em>industry</em> to load benchmarks</div></div>
+ <div class="placeholder-step"><div class="step-num">2</div><div class="step-text">Enter <em>revenue, headcount &amp; salary</em></div></div>
+ <div class="placeholder-step"><div class="step-num">3</div><div class="step-text">Adjust sliders to <em>reflect your reality</em></div></div>
+ <div class="placeholder-step"><div class="step-num">4</div><div class="step-text">Click <em>Run My Assessment</em></div></div>
+ </div>
+ </div>
 
-    <!-- Results (hidden until run) -->
-    <div class="results-wrap" id="resultsWrap">
+ <!-- Results (hidden until run) -->
+ <div class="results-wrap" id="resultsWrap">
 
-      <div class="recovery-card">
-        <div class="recovery-eyebrow">Total Annual Profit Recovery Potential</div>
-        <div class="recovery-amount" id="totalRecovery">$0</div>
-        <div class="recovery-sublabel">The combined economic drag being extracted from your organization annually — and the capital available for recovery through optimized people operations and strategic HR alignment.</div>
-      </div>
+ <div class="recovery-card">
+ <div class="recovery-eyebrow">Total Annual Profit Recovery Potential</div>
+ <div class="recovery-amount" id="totalRecovery">$0</div>
+ <div class="recovery-sublabel">The combined economic drag being extracted from your organization annually and the capital available for recovery through optimized people operations and strategic HR alignment.</div>
+ </div>
 
-      <div class="rev-row">
-        <div class="rev-card gold">
-          <span class="rev-label">Revenue Per Employee</span>
-          <span class="rev-val" id="revPerEmployee">$0</span>
-          <span class="rev-sub">Your current productivity rate</span>
-        </div>
-        <div class="rev-card stone">
-          <span class="rev-label">Industry Benchmark</span>
-          <span class="rev-val" id="benchmarkDisplay">$0</span>
-          <div class="benchmark-delta" id="benchmarkDelta">—</div>
-        </div>
-      </div>
+ <div class="rev-row">
+ <div class="rev-card gold">
+ <span class="rev-label">Revenue Per Employee</span>
+ <span class="rev-val" id="revPerEmployee">$0</span>
+ <span class="rev-sub">Your current productivity rate</span>
+ </div>
+ <div class="rev-card stone">
+ <span class="rev-label">Industry Benchmark</span>
+ <span class="rev-val" id="benchmarkDisplay">$0</span>
+ <div class="benchmark-delta" id="benchmarkDelta"> </div>
+ </div>
+ </div>
 
-      <div class="insight-row">
-        <div class="insight-card card-risk">
-          <span class="insight-tag">Cost Driver A</span>
-          <div class="insight-name">The Turnover Tax</div>
-          <div class="insight-amount" id="turnoverLeakage">$0</div>
-          <div class="insight-desc">Annual attrition cost at 33% of salary per departure, including replacement, ramp time, and lost productivity.</div>
-        </div>
-        <div class="insight-card card-caution">
-          <span class="insight-tag">Cost Driver B</span>
-          <div class="insight-name">The Leadership Tax</div>
-          <div class="insight-amount" id="opportunityCost">$0</div>
-          <div class="insight-desc">Revenue-generating capacity lost while leadership bandwidth is consumed by HR administration and payroll management.</div>
-        </div>
-        <div class="insight-card card-positive">
-          <span class="insight-tag">Growth Driver C</span>
-          <div class="insight-name">The Performance Dividend</div>
-          <div class="insight-amount" id="perfDividend">$0</div>
-          <div class="insight-desc">Unrealized top-line growth available through a documented 5% performance lift from optimized human capital deployment.</div>
-        </div>
-      </div>
+ <div class="insight-row">
+ <div class="insight-card card-risk">
+ <span class="insight-tag">Cost Driver A</span>
+ <div class="insight-name">The Turnover Tax</div>
+ <div class="insight-amount" id="turnoverLeakage">$0</div>
+ <div class="insight-desc">Annual attrition cost at 33% of salary per departure, including replacement, ramp time, and lost productivity.</div>
+ </div>
+ <div class="insight-card card-caution">
+ <span class="insight-tag">Cost Driver B</span>
+ <div class="insight-name">The Leadership Tax</div>
+ <div class="insight-amount" id="opportunityCost">$0</div>
+ <div class="insight-desc">Revenue-generating capacity lost while leadership bandwidth is consumed by HR administration and payroll management.</div>
+ </div>
+ <div class="insight-card card-positive">
+ <span class="insight-tag">Growth Driver C</span>
+ <div class="insight-name">The Performance Dividend</div>
+ <div class="insight-amount" id="perfDividend">$0</div>
+ <div class="insight-desc">Unrealized top-line growth available through a documented 5% performance lift from optimized human capital deployment.</div>
+ </div>
+ </div>
 
-      <div class="risk-panel">
-        <div class="risk-header"><div class="risk-dot"></div><h3>Risk Review Profile</h3></div>
-        <div class="risk-body">
-          <div class="risk-flag flag-risk" id="flag-turnover">
-            <div class="flag-marker">!</div>
-            <div>
-              <div class="flag-title">High Operational Friction</div>
-              <div class="flag-desc" id="flag-turnover-desc">Turnover rate exceeds the industry threshold. Compounding recruitment, onboarding, and productivity loss is creating structural drag on margins. An immediate cultural and compensation audit is recommended.</div>
-            </div>
-          </div>
-          <div class="risk-flag flag-caution" id="flag-admin">
-            <div class="flag-marker">⏱</div>
-            <div>
-              <div class="flag-title">Scalability Bottleneck</div>
-              <div class="flag-desc">Leadership is allocating more than 10 hours weekly to HR administration. This misallocation of your highest-cost labor to non-revenue activities is a growth ceiling disguised as a workflow problem.</div>
-            </div>
-          </div>
-          <div class="risk-flag flag-positive" id="flag-revenue">
-            <div class="flag-marker">↗</div>
-            <div>
-              <div class="flag-title">Under-utilized Human Capital</div>
-              <div class="flag-desc" id="flag-revenue-desc">Revenue per employee is below your industry benchmark, indicating untapped productivity capacity or talent-to-role misalignment that can be structurally addressed.</div>
-            </div>
-          </div>
-        </div>
-      </div>
+ <div class="risk-panel">
+ <div class="risk-header"><div class="risk-dot"></div><h3>Risk Review Profile</h3></div>
+ <div class="risk-body">
+ <div class="risk-flag flag-risk" id="flag-turnover">
+ <div class="flag-marker">!</div>
+ <div>
+ <div class="flag-title">High Operational Friction</div>
+ <div class="flag-desc" id="flag-turnover-desc">Turnover rate exceeds the industry threshold. Compounding recruitment, onboarding, and productivity loss is creating structural drag on margins. An immediate cultural and compensation audit is recommended.</div>
+ </div>
+ </div>
+ <div class="risk-flag flag-caution" id="flag-admin">
+ <div class="flag-marker">⏱</div>
+ <div>
+ <div class="flag-title">Scalability Bottleneck</div>
+ <div class="flag-desc">Leadership is allocating more than 10 hours weekly to HR administration. This misallocation of your highest-cost labor to non-revenue activities is a growth ceiling disguised as a workflow problem.</div>
+ </div>
+ </div>
+ <div class="risk-flag flag-positive" id="flag-revenue">
+ <div class="flag-marker">↗</div>
+ <div>
+ <div class="flag-title">Under-utilized Human Capital</div>
+ <div class="flag-desc" id="flag-revenue-desc">Revenue per employee is below your industry benchmark, indicating untapped productivity capacity or talent-to-role misalignment that can be structurally addressed.</div>
+ </div>
+ </div>
+ </div>
+ </div>
 
-      <div class="cta-band">
-        <div class="cta-text">
-          <h3>Request Your Human Capital <em>Risk Review</em></h3>
-          <p>These numbers tell a story. Let Kevin work through the details with you directly — no deck, no pitch, just a clear diagnostic of where your people operations are costing you growth.</p>
-        </div>
-        <button class="cta-btn" onclick="openModal()">
-          Request My Risk Review
-          <div class="cta-btn-arrow"></div>
-        </button>
-      </div>
+ <div class="cta-band">
+ <div class="cta-text">
+ <h3>Request Your Human Capital <em>Risk Review</em></h3>
+ <p>These numbers tell a story. Let Kevin work through the details with you directly no deck, no pitch, just a clear diagnostic of where your people operations are costing you growth.</p>
+ </div>
+ <button class="cta-btn" onclick="openModal()">
+ Request My Risk Review
+ <div class="cta-btn-arrow"></div>
+ </button>
+ </div>
 
-      <p class="disclaimer">This tool provides an operational diagnostic framework and does not constitute legal, tax, or labor advice. Figures are estimates based on widely-cited workforce research and intended for strategic planning purposes only. ForwardThink, LLC &copy; 2025</p>
+ <p class="disclaimer">This tool provides an operational diagnostic framework and does not constitute legal, tax, or labor advice. Figures are estimates based on widely-cited workforce research and intended for strategic planning purposes only. ForwardThink, LLC &copy; 2025</p>
 
-    </div>
-  </div>
+ </div>
+ </div>
 </div>
 
 <!-- FOOTER -->
 <footer class="footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-      <div class="logo">Forward<em>Think</em></div>
-      <p>People Operations and Leadership Consulting</p>
-      <p style="margin-top:4px">ForwardThink, LLC &nbsp;·&nbsp; Delray Beach, Florida</p>
-    </div>
-    <div>
-      <nav class="footer-nav">
-        <a href="index.html">Home</a>
-        <a href="blog.html">Blog</a>
-        <a href="calculator.html">Calculator</a>
-        <a href="https://www.linkedin.com/in/kevinwolsko/" target="_blank">LinkedIn</a>
-        <a href="https://outlook.office.com/bookwithme/user/ebe4e0ad7fc94483965a60c41dfaedb8@insperity.com?anonymous&ismsaljsauthenabled&ep=plink" target="_blank">Book a Call</a>
-      </nav>
-      <p class="footer-copy">2025 ForwardThink, LLC. All rights reserved.</p>
-    </div>
-  </div>
+ <div class="footer-inner">
+ <div class="footer-brand">
+ <div class="logo">Forward<em>Think</em></div>
+ <p>People Operations and Leadership Consulting</p>
+ <p style="margin-top:4px">ForwardThink, LLC &nbsp;·&nbsp; Delray Beach, Florida</p>
+ </div>
+ <div>
+ <nav class="footer-nav">
+ <a href="index.html">Home</a>
+ <a href="blog.html">Blog</a>
+ <a href="calculator.html">Calculator</a>
+ <a href="https://www.linkedin.com/in/kevinwolsko/" target="_blank">LinkedIn</a>
+ <a href="https://outlook.office.com/bookwithme/user/ebe4e0ad7fc94483965a60c41dfaedb8@insperity.com?anonymous&ismsaljsauthenabled&ep=plink" target="_blank">Book a Call</a>
+ </nav>
+ <p class="footer-copy">2025 ForwardThink, LLC. All rights reserved.</p>
+ </div>
+ </div>
 </footer>
 
 <!-- MODAL -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeOutside(event)">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal()" aria-label="Close">&#x2715;</button>
-    <div id="modalForm">
-      <div class="modal-eyebrow">ForwardThink, LLC</div>
-      <h2>Request Your <em>Risk Review</em></h2>
-      <p class="modal-sub">Kevin will personally review your numbers and reach out within one business day — no assistant, no sales team.</p>
-      <div class="modal-form">
-        <div class="modal-grid">
-          <input type="text"  class="modal-input" id="mFirst"   placeholder="First Name"/>
-          <input type="text"  class="modal-input" id="mLast"    placeholder="Last Name"/>
-        </div>
-        <input type="email" class="modal-input" id="mEmail"   placeholder="Business Email"/>
-        <input type="text"  class="modal-input" id="mCompany" placeholder="Company Name"/>
-        <input type="text"  class="modal-input" id="mTitle"   placeholder="Title / Role"/>
-        <button class="modal-submit" onclick="submitForm()">Send My Assessment Results</button>
-      </div>
-      <p class="modal-legal">By submitting you agree ForwardThink, LLC may contact you. Information is never sold or shared. Submission does not create a professional engagement.</p>
-    </div>
-    <div class="modal-success" id="modalSuccess">
-      <div class="success-check">&#10003;</div>
-      <h3>Received.</h3>
-      <p>Kevin will review your numbers personally and be in touch within one business day. Look for a direct message from kevin@wolsko.us.</p>
-    </div>
-  </div>
+ <div class="modal">
+ <button class="modal-close" onclick="closeModal()" aria-label="Close">&#x2715;</button>
+ <div id="modalForm">
+ <div class="modal-eyebrow">ForwardThink, LLC</div>
+ <h2>Request Your <em>Risk Review</em></h2>
+ <p class="modal-sub">Kevin will personally review your numbers and reach out within one business day no assistant, no sales team.</p>
+ <div class="modal-form">
+ <div class="modal-grid">
+ <input type="text" class="modal-input" id="mFirst" placeholder="First Name"/>
+ <input type="text" class="modal-input" id="mLast" placeholder="Last Name"/>
+ </div>
+ <input type="email" class="modal-input" id="mEmail" placeholder="Business Email"/>
+ <input type="text" class="modal-input" id="mCompany" placeholder="Company Name"/>
+ <input type="text" class="modal-input" id="mTitle" placeholder="Title / Role"/>
+ <button class="modal-submit" onclick="submitForm()">Send My Assessment Results</button>
+ </div>
+ <p class="modal-legal">By submitting you agree ForwardThink, LLC may contact you. Information is never sold or shared. Submission does not create a professional engagement.</p>
+ </div>
+ <div class="modal-success" id="modalSuccess">
+ <div class="success-check">&#10003;</div>
+ <h3>Received.</h3>
+ <p>Kevin will review your numbers personally and be in touch within one business day. Look for a direct message from kevin@wolsko.us.</p>
+ </div>
+ </div>
 </div>
 
 <script>
 /* ═══════════════════════════════════════════════════
-   INDUSTRY DATA
-   benchmark: revenue per employee ($)
-   turnover:  average annual turnover rate (%)
-   Sources: BLS, SHRM, industry association reports
+ INDUSTRY DATA
+ benchmark: revenue per employee ($)
+ turnover: average annual turnover rate (%)
+ Sources: BLS, SHRM, industry association reports
 ═══════════════════════════════════════════════════ */
 const INDUSTRIES = {
-  professional_services:    { label:'Professional Services',      benchmark:145000, turnover:14 },
-  technology:               { label:'Technology & Software',      benchmark:210000, turnover:18 },
-  financial_services:       { label:'Financial Services',         benchmark:175000, turnover:16 },
-  healthcare_services:      { label:'Healthcare Services',        benchmark:95000,  turnover:22 },
-  legal_services:           { label:'Legal Services',             benchmark:160000, turnover:17 },
-  manufacturing:            { label:'Manufacturing',              benchmark:185000, turnover:15 },
-  retail_wholesale:         { label:'Retail & Wholesale',         benchmark:72000,  turnover:28 },
-  construction_engineering: { label:'Construction & Engineering', benchmark:130000, turnover:19 },
-  nonprofit_education:      { label:'Nonprofit & Education',      benchmark:68000,  turnover:20 },
-  real_estate:              { label:'Real Estate & Property',     benchmark:155000, turnover:16 },
-  other:                    { label:'General / Cross-Industry',   benchmark:120000, turnover:17 },
+ professional_services: { label:'Professional Services', benchmark:145000, turnover:14 },
+ technology: { label:'Technology & Software', benchmark:210000, turnover:18 },
+ financial_services: { label:'Financial Services', benchmark:175000, turnover:16 },
+ healthcare_services: { label:'Healthcare Services', benchmark:95000, turnover:22 },
+ legal_services: { label:'Legal Services', benchmark:160000, turnover:17 },
+ manufacturing: { label:'Manufacturing', benchmark:185000, turnover:15 },
+ retail_wholesale: { label:'Retail & Wholesale', benchmark:72000, turnover:28 },
+ construction_engineering: { label:'Construction & Engineering', benchmark:130000, turnover:19 },
+ nonprofit_education: { label:'Nonprofit & Education', benchmark:68000, turnover:20 },
+ real_estate: { label:'Real Estate & Property', benchmark:155000, turnover:16 },
+ other: { label:'General / Cross-Industry', benchmark:120000, turnover:17 },
 };
 
 const BOOK_URL = 'https://outlook.office.com/bookwithme/user/ebe4e0ad7fc94483965a60c41dfaedb8@insperity.com?anonymous&ismsaljsauthenabled&ep=plink';
@@ -786,272 +786,272 @@ let currentIndustry = null;
 let slidersInitialized = false;
 
 /* ═══════════════════════════════════════════════════
-   INDUSTRY CHANGE
+ INDUSTRY CHANGE
 ═══════════════════════════════════════════════════ */
 function onIndustryChange() {
-  const sel = document.getElementById('industry');
-  const key = sel.value;
-  if (!key || !INDUSTRIES[key]) return;
-  sel.classList.add('has-value');
-  currentIndustry = INDUSTRIES[key];
+ const sel = document.getElementById('industry');
+ const key = sel.value;
+ if (!key || !INDUSTRIES[key]) return;
+ sel.classList.add('has-value');
+ currentIndustry = INDUSTRIES[key];
 
-  // Show industry info chip
-  document.getElementById('infoRevBench').textContent = fmt(currentIndustry.benchmark);
-  document.getElementById('infoTurnover').textContent = currentIndustry.turnover + '%  avg';
-  document.getElementById('industryInfo').classList.add('visible');
+ // Show industry info chip
+ document.getElementById('infoRevBench').textContent = fmt(currentIndustry.benchmark);
+ document.getElementById('infoTurnover').textContent = currentIndustry.turnover + '% avg';
+ document.getElementById('industryInfo').classList.add('visible');
 
-  // Update turnover hint
-  document.getElementById('turnoverHint').textContent =
-    'Industry avg ' + currentIndustry.turnover + '%';
+ // Update turnover hint
+ document.getElementById('turnoverHint').textContent =
+ 'Industry avg ' + currentIndustry.turnover + '%';
 
-  // Initialize sliders on first industry selection
-  if (!slidersInitialized) {
-    document.getElementById('turnover').value = currentIndustry.turnover;
-    document.getElementById('adminHours').value = 8;
-    slidersInitialized = true;
-  }
+ // Initialize sliders on first industry selection
+ if (!slidersInitialized) {
+ document.getElementById('turnover').value = currentIndustry.turnover;
+ document.getElementById('adminHours').value = 8;
+ slidersInitialized = true;
+ }
 
-  onTurnoverSlider();
-  onAdminSlider();
-  checkReady();
+ onTurnoverSlider();
+ onAdminSlider();
+ checkReady();
 }
 
 /* ═══════════════════════════════════════════════════
-   SLIDERS
+ SLIDERS
 ═══════════════════════════════════════════════════ */
 function onTurnoverSlider() {
-  const slider = document.getElementById('turnover');
-  const val    = parseInt(slider.value);
-  const pct    = (val / 60) * 100;
+ const slider = document.getElementById('turnover');
+ const val = parseInt(slider.value);
+ const pct = (val / 60) * 100;
 
-  slider.style.background =
-    `linear-gradient(to right,var(--gold) 0%,var(--gold) ${pct}%,var(--ink) ${pct}%,var(--ink) 100%)`;
+ slider.style.background =
+ `linear-gradient(to right,var(--gold) 0%,var(--gold) ${pct}%,var(--ink) ${pct}%,var(--ink) 100%)`;
 
-  const display = document.getElementById('turnoverDisplay');
-  display.innerHTML = `${val}<small>%</small>`;
-  display.className = 'slider-val';
-  if (currentIndustry && val > currentIndustry.turnover * 1.2) display.classList.add('val-danger');
-  else if (currentIndustry && val > currentIndustry.turnover)  display.classList.add('val-caution');
+ const display = document.getElementById('turnoverDisplay');
+ display.innerHTML = `${val}<small>%</small>`;
+ display.className = 'slider-val';
+ if (currentIndustry && val > currentIndustry.turnover * 1.2) display.classList.add('val-danger');
+ else if (currentIndustry && val > currentIndustry.turnover) display.classList.add('val-caution');
 
-  // Show vs-benchmark note
-  const note = document.getElementById('turnoverBenchmark');
-  if (currentIndustry) {
-    note.classList.add('visible');
-    const diff = val - currentIndustry.turnover;
-    if (diff > 0) {
-      note.innerHTML = `<span class="tb-above">&#9650; ${diff}pp above industry average (${currentIndustry.turnover}%)</span>`;
-    } else if (diff < 0) {
-      note.innerHTML = `<span class="tb-below">&#9660; ${Math.abs(diff)}pp below industry average (${currentIndustry.turnover}%)</span>`;
-    } else {
-      note.innerHTML = `<span class="tb-at">At industry average (${currentIndustry.turnover}%)</span>`;
-    }
-  }
-  checkReady();
+ // Show vs-benchmark note
+ const note = document.getElementById('turnoverBenchmark');
+ if (currentIndustry) {
+ note.classList.add('visible');
+ const diff = val - currentIndustry.turnover;
+ if (diff > 0) {
+ note.innerHTML = `<span class="tb-above">&#9650; ${diff}pp above industry average (${currentIndustry.turnover}%)</span>`;
+ } else if (diff < 0) {
+ note.innerHTML = `<span class="tb-below">&#9660; ${Math.abs(diff)}pp below industry average (${currentIndustry.turnover}%)</span>`;
+ } else {
+ note.innerHTML = `<span class="tb-at">At industry average (${currentIndustry.turnover}%)</span>`;
+ }
+ }
+ checkReady();
 }
 
 function onAdminSlider() {
-  const slider = document.getElementById('adminHours');
-  const val    = parseInt(slider.value);
-  const pct    = (val / 30) * 100;
+ const slider = document.getElementById('adminHours');
+ const val = parseInt(slider.value);
+ const pct = (val / 30) * 100;
 
-  slider.style.background =
-    `linear-gradient(to right,var(--gold) 0%,var(--gold) ${pct}%,var(--ink) ${pct}%,var(--ink) 100%)`;
+ slider.style.background =
+ `linear-gradient(to right,var(--gold) 0%,var(--gold) ${pct}%,var(--ink) ${pct}%,var(--ink) 100%)`;
 
-  const display = document.getElementById('adminDisplay');
-  display.innerHTML = `${val}<small> hrs/wk</small>`;
-  display.className = 'slider-val';
-  if (val > 10) display.classList.add('val-caution');
-  checkReady();
+ const display = document.getElementById('adminDisplay');
+ display.innerHTML = `${val}<small> hrs/wk</small>`;
+ display.className = 'slider-val';
+ if (val > 10) display.classList.add('val-caution');
+ checkReady();
 }
 
 /* ═══════════════════════════════════════════════════
-   CURRENCY
+ CURRENCY
 ═══════════════════════════════════════════════════ */
 function parseCurrency(val) {
-  return parseFloat(String(val).replace(/[^0-9.]/g,'')) || 0;
+ return parseFloat(String(val).replace(/[^0-9.]/g,'')) || 0;
 }
 function fmtCurrency(input) {
-  const raw = parseCurrency(input.value);
-  if (raw > 0) input.value = raw.toLocaleString('en-US');
-  checkReady();
+ const raw = parseCurrency(input.value);
+ if (raw > 0) input.value = raw.toLocaleString('en-US');
+ checkReady();
 }
 function fmt(n) {
-  if (!n && n !== 0) return '—';
-  if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
-  if (n >= 1000)    return '$' + Math.round(n).toLocaleString('en-US');
-  return '$' + Math.round(n).toLocaleString('en-US');
+ if (!n && n !== 0) return ' ';
+ if (n >= 1000000) return '$' + (n/1000000).toFixed(2) + 'M';
+ if (n >= 1000) return '$' + Math.round(n).toLocaleString('en-US');
+ return '$' + Math.round(n).toLocaleString('en-US');
 }
 function fmtShort(n) {
-  if (n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
-  if (n >= 1000)    return '$' + Math.round(n/1000) + 'K';
-  return '$' + Math.round(n);
+ if (n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
+ if (n >= 1000) return '$' + Math.round(n/1000) + 'K';
+ return '$' + Math.round(n);
 }
 
 /* ═══════════════════════════════════════════════════
-   READINESS
+ READINESS
 ═══════════════════════════════════════════════════ */
 function checkReady() {
-  const industry  = document.getElementById('industry').value;
-  const revenue   = parseCurrency(document.getElementById('revenue').value);
-  const headcount = parseFloat(document.getElementById('headcount').value) || 0;
-  const salary    = parseCurrency(document.getElementById('salary').value);
-  const ready = industry && revenue > 0 && headcount > 0 && salary > 0 && slidersInitialized;
-  document.getElementById('runBtn').disabled = !ready;
+ const industry = document.getElementById('industry').value;
+ const revenue = parseCurrency(document.getElementById('revenue').value);
+ const headcount = parseFloat(document.getElementById('headcount').value) || 0;
+ const salary = parseCurrency(document.getElementById('salary').value);
+ const ready = industry && revenue > 0 && headcount > 0 && salary > 0 && slidersInitialized;
+ document.getElementById('runBtn').disabled = !ready;
 }
 
 /* ═══════════════════════════════════════════════════
-   ANIMATED COUNTER
+ ANIMATED COUNTER
 ═══════════════════════════════════════════════════ */
 function animateTo(el, target, formatFn) {
-  const duration = 900;
-  const start    = Date.now();
-  const from     = parseCurrency(el.textContent.replace(/[^0-9.]/g,'')) || 0;
-  el.classList.remove('count-anim');
-  void el.offsetWidth;
-  el.classList.add('count-anim');
-  function step() {
-    const elapsed  = Date.now() - start;
-    const progress = Math.min(elapsed/duration, 1);
-    const ease     = 1 - Math.pow(1-progress, 4);
-    el.textContent = formatFn(from + (target-from) * ease);
-    if (progress < 1) requestAnimationFrame(step);
-    else el.textContent = formatFn(target);
-  }
-  requestAnimationFrame(step);
+ const duration = 900;
+ const start = Date.now();
+ const from = parseCurrency(el.textContent.replace(/[^0-9.]/g,'')) || 0;
+ el.classList.remove('count-anim');
+ void el.offsetWidth;
+ el.classList.add('count-anim');
+ function step() {
+ const elapsed = Date.now() - start;
+ const progress = Math.min(elapsed/duration, 1);
+ const ease = 1 - Math.pow(1-progress, 4);
+ el.textContent = formatFn(from + (target-from) * ease);
+ if (progress < 1) requestAnimationFrame(step);
+ else el.textContent = formatFn(target);
+ }
+ requestAnimationFrame(step);
 }
 
 /* ═══════════════════════════════════════════════════
-   CALCULATE
+ CALCULATE
 ═══════════════════════════════════════════════════ */
 function calculate() {
-  const industry   = document.getElementById('industry').value;
-  const revenue    = parseCurrency(document.getElementById('revenue').value);
-  const headcount  = Math.max(1, parseFloat(document.getElementById('headcount').value)||1);
-  const salary     = parseCurrency(document.getElementById('salary').value);
-  const turnover   = parseFloat(document.getElementById('turnover').value)||0;
-  const adminHours = parseFloat(document.getElementById('adminHours').value)||0;
+ const industry = document.getElementById('industry').value;
+ const revenue = parseCurrency(document.getElementById('revenue').value);
+ const headcount = Math.max(1, parseFloat(document.getElementById('headcount').value)||1);
+ const salary = parseCurrency(document.getElementById('salary').value);
+ const turnover = parseFloat(document.getElementById('turnover').value)||0;
+ const adminHours = parseFloat(document.getElementById('adminHours').value)||0;
 
-  if (!industry || revenue<=0 || headcount<=0 || salary<=0) return;
+ if (!industry || revenue<=0 || headcount<=0 || salary<=0) return;
 
-  const ind  = INDUSTRIES[industry];
-  const bench = ind.benchmark;
+ const ind = INDUSTRIES[industry];
+ const bench = ind.benchmark;
 
-  /* ── MATH ── */
-  const revPerEmployee   = revenue / headcount;
-  const turnoverLeakage  = (salary * 0.33) * (headcount * (turnover/100));
-  const opportunityCost  = ((salary/2080) * 2.5) * (adminHours * 52);
-  const discretionaryDiv = revenue * 0.05;
-  const totalMoat        = turnoverLeakage + opportunityCost + discretionaryDiv;
+ /* ── MATH ── */
+ const revPerEmployee = revenue / headcount;
+ const turnoverLeakage = (salary * 0.33) * (headcount * (turnover/100));
+ const opportunityCost = ((salary/2080) * 2.5) * (adminHours * 52);
+ const discretionaryDiv = revenue * 0.05;
+ const totalMoat = turnoverLeakage + opportunityCost + discretionaryDiv;
 
-  /* ── SHOW RESULTS ── */
-  document.getElementById('outputPlaceholder').style.display = 'none';
-  document.getElementById('resultsWrap').classList.add('visible');
+ /* ── SHOW RESULTS ── */
+ document.getElementById('outputPlaceholder').style.display = 'none';
+ document.getElementById('resultsWrap').classList.add('visible');
 
-  /* ── ANIMATE ── */
-  animateTo(document.getElementById('totalRecovery'),   totalMoat,        fmt);
-  animateTo(document.getElementById('revPerEmployee'),  revPerEmployee,   fmt);
-  animateTo(document.getElementById('benchmarkDisplay'),bench,            fmt);
-  animateTo(document.getElementById('turnoverLeakage'), turnoverLeakage,  fmt);
-  animateTo(document.getElementById('opportunityCost'), opportunityCost,  fmt);
-  animateTo(document.getElementById('perfDividend'),    discretionaryDiv, fmt);
+ /* ── ANIMATE ── */
+ animateTo(document.getElementById('totalRecovery'), totalMoat, fmt);
+ animateTo(document.getElementById('revPerEmployee'), revPerEmployee, fmt);
+ animateTo(document.getElementById('benchmarkDisplay'),bench, fmt);
+ animateTo(document.getElementById('turnoverLeakage'), turnoverLeakage, fmt);
+ animateTo(document.getElementById('opportunityCost'), opportunityCost, fmt);
+ animateTo(document.getElementById('perfDividend'), discretionaryDiv, fmt);
 
-  /* ── BENCHMARK DELTA ── */
-  const delta = document.getElementById('benchmarkDelta');
-  if (revPerEmployee >= bench) {
-    const pct = Math.round(((revPerEmployee-bench)/bench)*100);
-    delta.textContent = `▲ ${pct}% above benchmark`;
-    delta.className = 'benchmark-delta delta-above';
-  } else {
-    delta.textContent = `▼ ${fmtShort(bench-revPerEmployee)} gap`;
-    delta.className = 'benchmark-delta delta-below';
-  }
+ /* ── BENCHMARK DELTA ── */
+ const delta = document.getElementById('benchmarkDelta');
+ if (revPerEmployee >= bench) {
+ const pct = Math.round(((revPerEmployee-bench)/bench)*100);
+ delta.textContent = `▲ ${pct}% above benchmark`;
+ delta.className = 'benchmark-delta delta-above';
+ } else {
+ delta.textContent = `▼ ${fmtShort(bench-revPerEmployee)} gap`;
+ delta.className = 'benchmark-delta delta-below';
+ }
 
-  /* ── RISK FLAGS ── */
-  // Turnover flag — fired when above industry average (not just 15%)
-  const indTurnoverThreshold = ind.turnover;
-  setFlag('flag-turnover', turnover > indTurnoverThreshold);
-  if (turnover > indTurnoverThreshold) {
-    document.getElementById('flag-turnover-desc').textContent =
-      `Your turnover rate of ${turnover}% is ${turnover - indTurnoverThreshold}pp above the ${ind.label} industry average of ${indTurnoverThreshold}%. ` +
-      `Compounding recruitment, onboarding, and productivity loss is creating structural drag on margins. An immediate cultural and compensation audit is recommended.`;
-  }
+ /* ── RISK FLAGS ── */
+ // Turnover flag fired when above industry average (not just 15%)
+ const indTurnoverThreshold = ind.turnover;
+ setFlag('flag-turnover', turnover > indTurnoverThreshold);
+ if (turnover > indTurnoverThreshold) {
+ document.getElementById('flag-turnover-desc').textContent =
+ `Your turnover rate of ${turnover}% is ${turnover - indTurnoverThreshold}pp above the ${ind.label} industry average of ${indTurnoverThreshold}%. ` +
+ `Compounding recruitment, onboarding, and productivity loss is creating structural drag on margins. An immediate cultural and compensation audit is recommended.`;
+ }
 
-  setFlag('flag-admin',   adminHours > 10);
+ setFlag('flag-admin', adminHours > 10);
 
-  const revenueBelow = revPerEmployee < bench;
-  setFlag('flag-revenue', revenueBelow);
-  if (revenueBelow) {
-    const pct = Math.round(((bench-revPerEmployee)/bench)*100);
-    document.getElementById('flag-revenue-desc').textContent =
-      `Revenue per employee is ${pct}% below the ${ind.label} benchmark of ${fmt(bench)}, ` +
-      `indicating untapped productivity capacity or talent-to-role misalignment that can be structurally addressed.`;
-  }
+ const revenueBelow = revPerEmployee < bench;
+ setFlag('flag-revenue', revenueBelow);
+ if (revenueBelow) {
+ const pct = Math.round(((bench-revPerEmployee)/bench)*100);
+ document.getElementById('flag-revenue-desc').textContent =
+ `Revenue per employee is ${pct}% below the ${ind.label} benchmark of ${fmt(bench)}, ` +
+ `indicating untapped productivity capacity or talent-to-role misalignment that can be structurally addressed.`;
+ }
 
-  // Smooth scroll to results on mobile
-  if (window.innerWidth < 1050) {
-    setTimeout(() => {
-      document.getElementById('resultsWrap').scrollIntoView({behavior:'smooth',block:'start'});
-    }, 200);
-  }
+ // Smooth scroll to results on mobile
+ if (window.innerWidth < 1050) {
+ setTimeout(() => {
+ document.getElementById('resultsWrap').scrollIntoView({behavior:'smooth',block:'start'});
+ }, 200);
+ }
 }
 
 function setFlag(id, active) {
-  const el = document.getElementById(id);
-  active ? el.classList.add('active') : el.classList.remove('active');
+ const el = document.getElementById(id);
+ active ? el.classList.add('active') : el.classList.remove('active');
 }
 
 /* ═══════════════════════════════════════════════════
-   MODAL
+ MODAL
 ═══════════════════════════════════════════════════ */
 function openModal() {
-  document.getElementById('modalOverlay').classList.add('open');
-  document.body.style.overflow = 'hidden';
+ document.getElementById('modalOverlay').classList.add('open');
+ document.body.style.overflow = 'hidden';
 }
 function closeModal() {
-  document.getElementById('modalOverlay').classList.remove('open');
-  document.body.style.overflow = '';
+ document.getElementById('modalOverlay').classList.remove('open');
+ document.body.style.overflow = '';
 }
 function closeOutside(e) {
-  if (e.target===document.getElementById('modalOverlay')) closeModal();
+ if (e.target===document.getElementById('modalOverlay')) closeModal();
 }
 function submitForm() {
-  const req = [document.getElementById('mFirst'), document.getElementById('mEmail')];
-  let valid = true;
-  req.forEach(f => {
-    if (!f.value.trim()) {
-      f.classList.add('error');
-      setTimeout(()=>f.classList.remove('error'),2500);
-      valid = false;
-    }
-  });
-  if (!valid) return;
-  document.getElementById('modalForm').style.display = 'none';
-  document.getElementById('modalSuccess').style.display = 'block';
-  setTimeout(closeModal, 4500);
+ const req = [document.getElementById('mFirst'), document.getElementById('mEmail')];
+ let valid = true;
+ req.forEach(f => {
+ if (!f.value.trim()) {
+ f.classList.add('error');
+ setTimeout(()=>f.classList.remove('error'),2500);
+ valid = false;
+ }
+ });
+ if (!valid) return;
+ document.getElementById('modalForm').style.display = 'none';
+ document.getElementById('modalSuccess').style.display = 'block';
+ setTimeout(closeModal, 4500);
 }
 
 /* ═══════════════════════════════════════════════════
-   NAV + INIT
+ NAV + INIT
 ═══════════════════════════════════════════════════ */
 window.addEventListener('DOMContentLoaded', () => {
-  const nav = document.getElementById('nav');
-  window.addEventListener('scroll', ()=>{
-    nav.classList.toggle('scrolled', window.scrollY > 60);
-  }, {passive:true});
-  nav.classList.add('scrolled'); // calculator page always has solid nav
+ const nav = document.getElementById('nav');
+ window.addEventListener('scroll', ()=>{
+ nav.classList.toggle('scrolled', window.scrollY > 60);
+ }, {passive:true});
+ nav.classList.add('scrolled'); // calculator page always has solid nav
 
-  const ham = document.getElementById('ham');
-  const mob = document.getElementById('mobileNav');
-  ham.addEventListener('click', ()=>{
-    ham.classList.toggle('open');
-    mob.classList.toggle('open');
-    document.body.style.overflow = mob.classList.contains('open') ? 'hidden' : '';
-  });
-  mob.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
-    ham.classList.remove('open');
-    mob.classList.remove('open');
-    document.body.style.overflow = '';
-  }));
+ const ham = document.getElementById('ham');
+ const mob = document.getElementById('mobileNav');
+ ham.addEventListener('click', ()=>{
+ ham.classList.toggle('open');
+ mob.classList.toggle('open');
+ document.body.style.overflow = mob.classList.contains('open') ? 'hidden' : '';
+ });
+ mob.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>{
+ ham.classList.remove('open');
+ mob.classList.remove('open');
+ document.body.style.overflow = '';
+ }));
 });
 </script>
 </body>
