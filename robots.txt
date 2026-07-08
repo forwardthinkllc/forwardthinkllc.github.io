@@ -4,7 +4,7 @@ Disallow:
 
 Sitemap: https://www.wolsko.us/sitemap.xml
 
-# AI crawlers — allow for training and search
+# AI crawlers - allow for training and search
 User-agent: GPTBot
 Allow: /
 
