@@ -677,6 +677,10 @@ async function renderDebrief(id, a){
         <div style="font-size:14px;color:var(--text2)">${esc(a.rep_card.company)} · ${esc(OUTCOMES[r.outcome] || r.outcome || "")}</div>
         <div style="font-size:14px;color:var(--text2)">Best possible outcome reached: ${esc(r.reached_best || "–")}</div></div>
     </div>
+    ${r.gap || r.strength ? `<div class="card stack" style="gap:12px">
+      ${r.gap ? `<div class="stack" style="gap:3px"><div class="eyebrow" style="color:#F2A65A">Biggest gap · ${esc(r.gap.phase)}</div><div style="font-size:16px;line-height:1.45">${esc(r.gap.text || "")}</div></div>` : ""}
+      ${r.strength ? `<div class="stack" style="gap:3px"><div class="eyebrow" style="color:#5BD08A">Strongest · ${esc(r.strength.phase)}</div><div style="font-size:16px;line-height:1.45">${esc(r.strength.text || "")}</div></div>` : ""}
+    </div>` : ""}
     ${(r.integrity_flags || []).length ? `<div class="row" style="align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;background:#3A2A12;border:1px solid #6B4A17">${ICON.warn}
       <div style="font-size:14px;line-height:1.45;color:#F5E3BC"><strong>Integrity flag.</strong> ${esc((r.integrity_flags||[]).map(f => (f.t ? f.t + " " : "") + (f.quote || f.id || "")).join(" · "))}. Your score is capped at 2.5.</div></div>` : ""}
     <div class="card stack" style="gap:11px"><div class="eyebrow">Scores by phase</div>${phaseBars(r.phase_scores)}</div>
