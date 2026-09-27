@@ -635,11 +635,16 @@ function failCall(msg){
 function renderScoring(id, secs){
   $app.className = "wrap";
   $app.replaceChildren(h(`<div class="stack" style="align-items:center;margin-top:20vh;text-align:center"><div class="spin"></div>
-    <div style="font-size:20px;font-weight:700">Scoring your call</div><div class="muted">Call time ${fmtTime(secs)}. This takes about a minute.</div></div>`));
+    <div style="font-size:20px;font-weight:700">Scoring your call</div><div class="muted" id="scoremsg">Call time ${fmtTime(secs)}. This takes about a minute.</div></div>`));
   let tries = 0;
   const poll = async () => {
     tries++;
     try { const a = await api(`/api/attempts/${id}`); if (a.status === "graded" || a.status === "failed") return renderDebrief(id, a); } catch(e){ if (e.message === "signed out") return; }
+    if (tries === 40){  // about two minutes
+      const m = document.getElementById("scoremsg");
+      if (m) m.innerHTML = "Taking longer than usual. It will finish on its own and appear in your History, so you can start your next call. <button class='btn ghost small' type='button' id='leave'>Back to practice</button>";
+      const b = document.getElementById("leave"); if (b) b.onclick = renderHome;
+    }
     setTimeout(poll, tries < 20 ? 3000 : 8000);
   };
   setTimeout(poll, 2500);
@@ -662,6 +667,7 @@ function md(src){
 async function renderDebrief(id, a){
   a = a || await api(`/api/attempts/${id}`);
   $app.className = "wrap";
+  if (a.status === "grading") return renderScoring(id, a.transcript && a.transcript.length ? a.transcript[a.transcript.length-1].end : 0);
   if (a.status !== "graded"){
     $app.replaceChildren(h(`<div class="stack"><button class="btn ghost small" type="button" id="back" style="align-self:flex-start">Back</button>
       <div class="err">This call couldn't be scored${a.error ? ": " + esc(a.error) : ""}. Your manager can retry it.</div></div>`));
