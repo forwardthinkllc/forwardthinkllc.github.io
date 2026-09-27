@@ -664,6 +664,20 @@ function md(src){
   return out.join("");
 }
 
+function callBlock(cb){
+  if (!cb || !cb.focus || !cb.focus.what) return "";
+  const f = cb.focus, k = cb.keep || {};
+  return `<div class="card stack" style="gap:14px;border:1px solid #2E5E45">
+    <div class="eyebrow" style="color:#5BD08A">Your next call block</div>
+    <div class="stack" style="gap:4px"><div style="font-weight:800">1 · Focus on: ${esc(f.what)}</div>
+      ${f.say ? `<div style="font-size:15px;line-height:1.5;padding:8px 12px;border-left:3px solid #F2A65A;background:rgba(242,166,90,.08)">Say: “${esc(f.say)}”</div>` : ""}
+      ${f.target ? `<div style="font-size:14px;color:var(--text2)">Target: ${esc(f.target)}</div>` : ""}</div>
+    ${k.what ? `<div class="stack" style="gap:4px"><div style="font-weight:800">2 · Keep doing: ${esc(k.what)}</div>
+      ${k.quote ? `<div style="font-size:14px;color:var(--text2)">${k.t ? esc(k.t) + " · " : ""}“${esc(k.quote)}”</div>` : ""}</div>` : ""}
+    ${cb.push ? `<div style="font-weight:700;line-height:1.5">3 · ${esc(cb.push)}</div>` : ""}
+  </div>`;
+}
+
 async function renderDebrief(id, a){
   a = a || await api(`/api/attempts/${id}`);
   $app.className = "wrap";
@@ -687,6 +701,7 @@ async function renderDebrief(id, a){
       ${r.gap ? `<div class="stack" style="gap:3px"><div class="eyebrow" style="color:#F2A65A">Biggest gap · ${esc(r.gap.phase)}</div><div style="font-size:16px;line-height:1.45">${esc(r.gap.text || "")}</div></div>` : ""}
       ${r.strength ? `<div class="stack" style="gap:3px"><div class="eyebrow" style="color:#5BD08A">Strongest · ${esc(r.strength.phase)}</div><div style="font-size:16px;line-height:1.45">${esc(r.strength.text || "")}</div></div>` : ""}
     </div>` : ""}
+    ${callBlock(r.call_block)}
     ${(r.integrity_flags || []).length ? `<div class="row" style="align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;background:#3A2A12;border:1px solid #6B4A17">${ICON.warn}
       <div style="font-size:14px;line-height:1.45;color:#F5E3BC"><strong>Integrity flag.</strong> ${esc((r.integrity_flags||[]).map(f => (f.t ? f.t + " " : "") + (f.quote || f.id || "")).join(" · "))}. Your score is capped at 2.5.</div></div>` : ""}
     <div class="card stack" style="gap:11px"><div class="eyebrow">Scores by phase</div>${phaseBars(r.phase_scores)}</div>
