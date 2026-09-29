@@ -253,17 +253,17 @@ async function paneTabPractice(pane){
 }
 
 // ----------------------------------------------------------------------- progress tab
-function sparkline(series){
-  if (series.length < 2) return `<p class="muted" style="font-size:14px;margin:0">Your trend line appears after two scored calls.</p>`;
+function sparkline(series, emptyText, label){
+  if (series.length < 2) return `<p class="muted" style="font-size:14px;margin:0">${esc(emptyText || "Your trend line appears after two scored calls.")}</p>`;
   const W = 440, H = 120, P = 10, n = series.length;
   const x = i => P + i * (W - 2*P) / (n - 1), y = v => H - P - (v - 1) / 4 * (H - 2*P);
   const pts = series.map((s,i) => `${x(i).toFixed(1)},${y(s.overall).toFixed(1)}`).join(" ");
   const target = y(3.6).toFixed(1);
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Overall score for each scored call, oldest to newest">
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(label || "Overall score for each scored call, oldest to newest")}">
     <line x1="${P}" x2="${W-P}" y1="${target}" y2="${target}" stroke="#2B5C41" stroke-dasharray="4 4"/>
     <text x="${W-P}" y="${+target-6}" text-anchor="end" fill="#7FD6A6" font-size="11" font-family="IBM Plex Mono">call-ready 3.6</text>
     <polyline points="${pts}" fill="none" stroke="#9CC7EE" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-    ${series.map((s,i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(s.overall).toFixed(1)}" r="3.5" fill="#9CC7EE"><title>${esc(fmtDate(s.date))}: ${s.overall}</title></circle>`).join("")}
+    ${series.map((s,i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(s.overall).toFixed(1)}" r="3.5" fill="#9CC7EE"><title>${esc(s.n ? new Date(s.date).toLocaleDateString(undefined,{month:"short",day:"numeric"}) + ` · ${s.n} call${s.n>1?"s":""}` : fmtDate(s.date))}: ${s.overall}</title></circle>`).join("")}
   </svg>`;
 }
 function phaseBars(obj){
@@ -273,7 +273,62 @@ function phaseBars(obj){
     <div class="bar"><i style="width:${(v||0)*20}%;background:${scoreColor(v)}"></i></div>
     <div class="mono" style="width:30px;text-align:right;font-size:13px">${v==null?"–":(+v).toFixed(1)}</div></div>`).join("");
 }
+// Admins: Progress and History default to the team view. "Mine" shows their own practice calls.
+async function adminScope(pane, render){
+  const view = store.get("dial_view") || "team";
+  const SUPER = !!ME.super_admin;
+  let teams = [], sel = String(ME.team_id || "all");
+  if (SUPER){
+    teams = await api("/api/admin/teams");
+    sel = store.get("dial_team") || sel;
+    if (sel !== "all" && !teams.find(t => String(t.id) === sel)) sel = "all";
+  }
+  const bar = h(`<div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">
+    <div class="tabs" role="tablist" style="margin:0">
+      <button role="tab" data-view="team" aria-selected="${view==="team"}">${SUPER ? "Team" : esc(ME.team_code || "Team")}</button>
+      <button role="tab" data-view="mine" aria-selected="${view==="mine"}">Mine</button></div>
+    ${SUPER && view==="team" ? `<select id="pteam" aria-label="Team" style="max-width:260px"><option value="all"${sel==="all"?" selected":""}>All teams</option>${teams.map(t => `<option value="${t.id}"${String(t.id)===sel?" selected":""}>${esc(t.code)}</option>`).join("")}</select>` : ""}
+  </div>`);
+  const body = document.createElement("div"); body.className = "stack";
+  pane.replaceChildren(bar, body);
+  pane.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { store.set("dial_view", b.dataset.view); renderHome(); });
+  const ps = document.getElementById("pteam"); if (ps) ps.onchange = e => { store.set("dial_team", e.target.value); renderHome(); };
+  await render(body, view, SUPER ? `?team=${encodeURIComponent(sel)}` : "");
+}
+
+async function paneTeamProgress(pane, q){
+  const p = await api("/api/admin/team-progress" + q);
+  const trend = p.trend == null ? "" : (p.trend > 0 ? `▲ ${p.trend.toFixed(2)}` : p.trend < 0 ? `▼ ${Math.abs(p.trend).toFixed(2)}` : "flat");
+  pane.replaceChildren(h(`
+    <div class="card" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+      <div><div class="eyebrow">Reps practicing</div><div class="mono" style="font-size:22px;margin-top:4px">${p.reps_practicing}<span style="font-size:13px;color:var(--muted)"> of ${p.reps}</span></div></div>
+      <div><div class="eyebrow">Team last 5 average</div><div class="mono" style="font-size:22px;margin-top:4px">${p.last5_avg ?? "–"} <span style="font-size:13px;color:var(--muted)">${trend}</span></div></div>
+      <div><div class="eyebrow">Scored calls</div><div class="mono" style="font-size:22px;margin-top:4px">${p.graded_calls}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_total} tries</span></div></div>
+      <div><div class="eyebrow">Meetings per conversation</div><div class="mono" style="font-size:22px;margin-top:4px">${p.booked_per_dm_conversation == null ? "–" : Math.round(p.booked_per_dm_conversation*100)+"%"}</div></div>
+    </div>
+    ${p.team_focus ? `<div class="card stack" style="gap:8px;background:var(--blue-bg);border-color:#27405A">
+      <div class="eyebrow" style="color:var(--blue-t)">Most common focus skill</div>
+      <div style="font-size:18px;font-weight:700">${esc(p.team_focus.skill)}</div>
+      <div class="muted" style="font-size:14px">The focus skill for ${p.team_focus.reps} of ${p.reps_practicing} reps practicing</div></div>` : ""}
+    <div class="card stack" style="gap:10px"><div class="eyebrow">Team average by day</div>${sparkline(p.series, "The team trend appears after scored calls on two different days.", "Team average score for each day with scored calls")}</div>
+    <div class="card stack" style="gap:11px"><div class="eyebrow">Team average by phase</div>${phaseBars(p.phase_avg)}</div>
+    <div class="card"><div class="eyebrow" style="margin-bottom:8px">By rep</div><div class="scroll-x"><table>
+      <thead><tr><th>Rep</th>${p.team === "All teams" ? "<th>Team</th>" : ""}<th>Scored</th><th>Last 5</th><th>Trend</th><th>Focus</th></tr></thead>
+      <tbody>${p.rep_rows.map(r => `<tr><td style="font-weight:700">${esc(r.name)}${r.status==="disabled" ? ` <span class="faint" style="font-size:12px">disabled</span>` : ""}</td>
+        ${p.team === "All teams" ? `<td class="faint" style="font-size:13px">${esc(r.team_code || "")}</td>` : ""}
+        <td class="mono">${r.graded_calls}</td><td class="mono" style="color:${scoreColor(r.last5_avg)}">${r.last5_avg ?? "–"}</td>
+        <td class="mono">${r.trend == null ? "–" : (r.trend > 0 ? "+" : "") + r.trend.toFixed(2)}</td>
+        <td>${esc(r.focus || "–")}${r.stuck ? ` <span class="chip miss">stuck</span>` : ""}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">No reps on this team yet.</td></tr>`}</tbody></table></div></div>`));
+  return p;
+}
+
 async function paneProgress(pane, userId){
+  if (!userId && ME.role === "admin" && !pane.dataset.inner){
+    return adminScope(pane, async (body, view, q) => {
+      if (view === "team") return paneTeamProgress(body, q);
+      body.dataset.inner = "1"; return paneProgress(body);
+    });
+  }
   const p = await api(userId ? `/api/admin/users/${userId}/progress` : "/api/progress");
   const trend = p.trend == null ? "" : (p.trend > 0 ? `▲ ${p.trend.toFixed(2)}` : p.trend < 0 ? `▼ ${Math.abs(p.trend).toFixed(2)}` : "flat");
   pane.replaceChildren(h(`
@@ -298,13 +353,24 @@ async function paneProgress(pane, userId){
 function attemptRows(attempts, admin){
   if (!attempts.length) return `<p class="muted">No calls yet.</p>`;
   return attempts.map(a => `<button class="list-item" type="button" data-attempt="${a.id}" ${a.status==="graded"||a.status==="failed"||a.status==="grading"?"":"disabled"}>
-      <div><div style="font-weight:700">${esc(a.company)}</div>
+      <div>${admin && a.rep ? `<div class="eyebrow" style="margin-bottom:2px">${esc(a.rep)}${a.team_code ? ` · ${esc(a.team_code)}` : ""}</div>` : ""}<div style="font-weight:700">${esc(a.company)}</div>
       <div class="muted" style="font-size:13px;margin-top:2px">${esc(fmtDate(a.date))} · ${a.path==="gatekeeper"?"Main line":"Direct"}${a.focus?` · ${esc(a.focus)} focus`:""}</div>
       <div style="font-size:13px;margin-top:2px;color:var(--text2)">${esc(a.outcome ? OUTCOMES[a.outcome] || a.outcome : STATUS[a.status] || a.status)}</div></div>
       <div class="mono" style="font-size:20px;color:${scoreColor(a.overall)}">${a.overall == null ? "–" : a.overall.toFixed(1)}</div>
     </button>`).join("");
 }
 async function paneHistory(pane){
+  if (ME.role === "admin" && !pane.dataset.inner){
+    return adminScope(pane, async (body, view, q) => {
+      if (view === "team"){
+        const p = await api("/api/admin/team-progress" + q);
+        body.replaceChildren(h(`<div>${attemptRows(p.attempts, true)}</div>`));
+        body.querySelectorAll("[data-attempt]").forEach(b => b.onclick = () => renderDebrief(+b.dataset.attempt));
+        return;
+      }
+      body.dataset.inner = "1"; return paneHistory(body);
+    });
+  }
   const p = await api("/api/progress");
   pane.replaceChildren(h(`<div>${attemptRows(p.attempts)}</div>`));
   pane.querySelectorAll("[data-attempt]").forEach(b => b.onclick = () => renderDebrief(+b.dataset.attempt));
