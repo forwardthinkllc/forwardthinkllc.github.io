@@ -343,7 +343,7 @@ async function paneAdmin(pane){
           <button class="btn small" style="align-self:flex-end;height:48px" type="submit">Save</button></form>` : `<div class="faint" style="font-size:13px">Lines are shared by every team.</div>`}
         ${cap.live_now.length ? `<div class="stack" style="gap:6px">${cap.live_now.map(l => `<div class="kv"><span>${esc(l.name)}</span><span>${l.status==="active"?"On a call":"Waiting"}</span></div>`).join("")}</div>` : ""}
       </div>
-      <div class="card stack" style="gap:12px">
+      ${SUPER ? `<div class="card stack" style="gap:12px">
         <div class="eyebrow">Invite someone</div>
         <form id="invf" class="stack" style="gap:10px">
           <div><label for="in">Name</label><input id="in" required></div>
@@ -353,8 +353,9 @@ async function paneAdmin(pane){
           <button class="btn small" type="submit">Create invite link</button>
         </form>
         <div id="invout"></div>
-      </div>
+      </div>` : ""}
     </div>
+    <div id="linkout"></div>
     <div class="card"><div class="eyebrow" style="margin-bottom:8px">${esc(teamName) || "Team"}</div><div class="scroll-x"><table>
       <thead><tr><th>Name</th>${SUPER ? "<th>Team</th>" : ""}<th>Level</th><th>Scored / tries</th><th>Last 5</th><th>Trend</th><th>Focus</th><th>Last sign-in</th><th></th></tr></thead>
       <tbody>${users.map(u => `<tr>
@@ -368,15 +369,16 @@ async function paneAdmin(pane){
         <td><div class="row" style="gap:6px;justify-content:flex-end">
           ${u.graded_calls ? `<button class="btn ghost small" type="button" data-view="${u.id}" data-name="${esc(u.name)}">Progress</button>` : ""}
           ${u.status==="active" && u.id!==ME.id ? `<button class="btn danger small" type="button" data-act="disable" data-id="${u.id}">Disable</button>` : ""}
-          ${u.status==="disabled" ? `<button class="btn ghost small" type="button" data-act="enable" data-id="${u.id}">Enable</button>` : ""}
-          ${u.status==="invited" ? `<button class="btn ghost small" type="button" data-reinvite="${u.id}" data-name="${esc(u.name)}" data-email="${esc(u.email)}" data-role="${esc(u.role)}" data-team="${u.team_id ?? ""}">New link</button>` : ""}
+          ${u.status!=="disabled" && u.id!==ME.id ? `<button class="btn ghost small" type="button" data-reset="${u.id}" data-name="${esc(u.name)}">Reset password</button>` : ""}
+          ${SUPER && u.status==="disabled" ? `<button class="btn ghost small" type="button" data-act="enable" data-id="${u.id}">Enable</button>` : ""}
+          ${SUPER && u.status==="invited" ? `<button class="btn ghost small" type="button" data-reinvite="${u.id}" data-name="${esc(u.name)}" data-email="${esc(u.email)}" data-role="${esc(u.role)}" data-team="${u.team_id ?? ""}">New link</button>` : ""}
         </div></td></tr>`).join("")}</tbody></table></div></div>
     <div class="card"><div class="eyebrow" style="margin-bottom:8px">Recent calls</div><div class="scroll-x"><table>
       <thead><tr><th>When</th><th>Rep</th>${ALL ? "<th>Team</th>" : ""}<th>Status</th><th>Score</th><th>Outcome</th><th></th></tr></thead>
       <tbody>${calls.slice(0,60).map(c => `<tr><td class="faint" style="font-size:13px">${esc(fmtDate(c.started_at || c.queued_at))}</td><td>${esc(c.name)}</td>${ALL ? `<td class="faint" style="font-size:13px">${esc(c.team_code || "")}</td>` : ""}
         <td>${esc(STATUS[c.status] || c.status)}${c.error ? `<div class="faint" style="font-size:12px">${esc(c.error)}</div>` : ""}</td>
         <td class="mono" style="color:${scoreColor(c.overall)}">${c.overall == null ? "–" : c.overall.toFixed(1)}</td><td>${esc(OUTCOMES[c.outcome] || "")}</td>
-        <td>${c.status==="graded" ? `<button class="btn ghost small" type="button" data-attempt="${c.id}">Debrief</button>` : c.status==="failed" ? `<button class="btn ghost small" type="button" data-regrade="${c.id}">Retry scoring</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>
+        <td>${c.status==="graded" ? `<button class="btn ghost small" type="button" data-attempt="${c.id}">Debrief</button>` : c.status==="failed" && SUPER ? `<button class="btn ghost small" type="button" data-regrade="${c.id}">Retry scoring</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>
     <div id="upane"></div>`));
   if (SUPER){
     document.getElementById("tsel").onchange = e => { store.set("dial_team", e.target.value); renderHome(); };
@@ -389,8 +391,8 @@ async function paneAdmin(pane){
   }
   const capf = document.getElementById("capf");
   if (capf) capf.onsubmit = async ev => { ev.preventDefault(); await api("/api/admin/capacity", {method:"PUT", body:{max_concurrent_calls:+capn.value}}); renderHome(); };
-  const showInvite = r => {
-    document.getElementById("invout").replaceChildren(h(`<div class="stack" style="gap:8px"><div class="note">${esc(r.note)}</div>
+  const showInvite = (r, where) => {
+    (document.getElementById(where || "invout") || document.getElementById("linkout")).replaceChildren(h(`<div class="stack" style="gap:8px"><div class="note">${esc(r.note)}</div>
       <input readonly value="${esc(r.invite_url)}" id="link" aria-label="Invite link"><button class="btn ghost small" type="button" id="copy">Copy link</button></div>`));
     document.getElementById("copy").onclick = () => { const l = document.getElementById("link"); l.select(); navigator.clipboard?.writeText(l.value); };
   };
@@ -402,6 +404,12 @@ async function paneAdmin(pane){
     try { showInvite(await api("/api/admin/invites", {body:{name:b.dataset.name, email:b.dataset.email, role:b.dataset.role || "rep", team_id: b.dataset.team ? +b.dataset.team : null}})); }
     catch(err){ document.getElementById("invout").replaceChildren(h(`<div class="err">${esc(err.message)}</div>`)); } });
   pane.querySelectorAll("[data-act]").forEach(b => b.onclick = async () => { if (b.dataset.act==="disable" && !confirm("Disable this account and sign them out everywhere?")) return; await api(`/api/admin/users/${b.dataset.id}/${b.dataset.act}`, {method:"POST"}); renderHome(); });
+  pane.querySelectorAll("[data-reset]").forEach(b => b.onclick = async () => {
+    if (!confirm(`Create a password reset link for ${b.dataset.name}? Send it to them privately.`)) return;
+    try { const r = await api(`/api/admin/users/${b.dataset.reset}/reset-password`, {method:"POST"});
+      showInvite({note: `${b.dataset.name}: ${r.note}`, invite_url: r.invite_url}, "linkout");
+      document.getElementById("linkout").scrollIntoView({behavior:"smooth", block:"center"}); }
+    catch(err){ document.getElementById("linkout").replaceChildren(h(`<div class="err">${esc(err.message)}</div>`)); } });
   pane.querySelectorAll("[data-attempt]").forEach(b => b.onclick = () => renderDebrief(+b.dataset.attempt));
   pane.querySelectorAll("[data-regrade]").forEach(b => b.onclick = async () => { await api(`/api/admin/calls/${b.dataset.regrade}/regrade`, {method:"POST"}); renderHome(); });
   pane.querySelectorAll("[data-view]").forEach(b => b.onclick = async () => {
