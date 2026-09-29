@@ -204,13 +204,13 @@ function renderInvite(token){
 // ======================================================================= home
 async function renderHome(){
   if (!ME) ME = await api("/api/me");
-  const tabs = [["practice","Practice"],["progress","Progress"],["history","History"]].concat(ME.role === "admin" ? [["admin","Team"]] : []);
+  const tabs = [["practice","Practice"],["progress","Progress"],["history","History"]].concat(ME.role === "admin" ? [["admin", ME.super_admin ? "Teams" : "Team"]] : []);
   if (!tabs.find(t => t[0] === TAB)) TAB = "practice";
   $app.className = "wrap" + (TAB === "admin" ? " wide" : "");
   $app.replaceChildren(h(`
     <div class="stack">
       <div class="between">
-        <div><div class="eyebrow" style="color:var(--green-t)">Dial Practice</div><div style="font-size:18px;font-weight:700;margin-top:2px">${esc(ME.name)}</div></div>
+        <div><div class="eyebrow" style="color:var(--green-t)">Dial Practice</div><div style="font-size:18px;font-weight:700;margin-top:2px">${esc(ME.name)}</div>${ME.team_code || ME.super_admin ? `<div class="faint" style="font-size:12px;margin-top:2px">${ME.super_admin ? "Super admin" : esc(ME.team_code)}</div>` : ""}</div>
         <button id="out" class="btn ghost small" type="button">Sign out</button>
       </div>
       <div class="tabs" role="tablist">${tabs.map(([k,l]) => `<button role="tab" data-tab="${k}" aria-selected="${k===TAB}">${l}</button>`).join("")}</div>
@@ -312,8 +312,26 @@ async function paneHistory(pane){
 
 // ----------------------------------------------------------------------- admin tab
 async function paneAdmin(pane){
-  const [cap, users, calls] = await Promise.all([api("/api/admin/capacity"), api("/api/admin/users"), api("/api/admin/calls")]);
+  const SUPER = !!ME.super_admin;
+  const teams = await api("/api/admin/teams");
+  let sel = SUPER ? (store.get("dial_team") || String(ME.team_id || "all")) : String(ME.team_id);
+  if (SUPER && sel !== "all" && !teams.find(t => String(t.id) === sel)) sel = "all";
+  const q = SUPER ? `?team=${encodeURIComponent(sel)}` : "";
+  const [cap, users, calls] = await Promise.all([api("/api/admin/capacity" + q), api("/api/admin/users" + q), api("/api/admin/calls" + q)]);
+  const ALL = SUPER && sel === "all";
+  const teamOpts = (chosen, withAll) => (withAll ? `<option value="all"${chosen==="all"?" selected":""}>All teams</option>` : "") +
+    teams.map(t => `<option value="${t.id}"${String(t.id)===String(chosen)?" selected":""}>${esc(t.code)} · ${esc(t.name)}</option>`).join("");
+  const teamName = ALL ? "All teams" : (teams.find(t => String(t.id) === sel) || {}).code || ME.team_code || "";
   pane.replaceChildren(h(`
+    ${SUPER ? `<div class="card" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
+      <div style="flex:1;min-width:220px"><label for="tsel">Viewing</label><select id="tsel">${teamOpts(sel, true)}</select></div>
+      <form id="teamf" class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div><label for="tc">New team code</label><input id="tc" placeholder="NSP-TAMPA1" pattern="[A-Za-z0-9-]+" required style="width:150px"></div>
+        <div><label for="tn">Team name</label><input id="tn" placeholder="NSP Tampa 1" required style="width:170px"></div>
+        <button class="btn ghost small" type="submit" style="height:48px">Add team</button>
+      </form>
+      <div id="teamout" style="width:100%"></div>
+    </div>` : `<div class="faint" style="font-size:13px">Showing ${esc(teamName)} only.</div>`}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
       <div class="card stack" style="gap:12px">
         <div class="eyebrow">Practice lines</div>
@@ -321,8 +339,8 @@ async function paneAdmin(pane){
         <div class="kv"><span>Waiting</span><span class="mono">${cap.queued}</span></div>
         <div class="kv"><span>Mac</span><span>${cap.mac_ok ? "Healthy" : "Under load: " + esc(cap.mac_reason)}</span></div>
         ${cap.free_memory_gb != null ? `<div class="kv"><span>Free memory · CPU</span><span class="mono">${cap.free_memory_gb} GB · ${Math.round(cap.cpu_percent)}%</span></div>` : ""}
-        <form id="capf" class="row"><div style="flex:1"><label for="capn">Max simultaneous calls</label><input id="capn" type="number" min="0" max="50" value="${cap.max_concurrent_calls}"></div>
-          <button class="btn small" style="align-self:flex-end;height:48px" type="submit">Save</button></form>
+        ${cap.can_set_capacity ? `<form id="capf" class="row"><div style="flex:1"><label for="capn">Max simultaneous calls (all teams)</label><input id="capn" type="number" min="0" max="50" value="${cap.max_concurrent_calls}"></div>
+          <button class="btn small" style="align-self:flex-end;height:48px" type="submit">Save</button></form>` : `<div class="faint" style="font-size:13px">Lines are shared by every team.</div>`}
         ${cap.live_now.length ? `<div class="stack" style="gap:6px">${cap.live_now.map(l => `<div class="kv"><span>${esc(l.name)}</span><span>${l.status==="active"?"On a call":"Waiting"}</span></div>`).join("")}</div>` : ""}
       </div>
       <div class="card stack" style="gap:12px">
@@ -331,15 +349,17 @@ async function paneAdmin(pane){
           <div><label for="in">Name</label><input id="in" required></div>
           <div><label for="ie">Email</label><input id="ie" type="email" required></div>
           <div><label for="ir">Role</label><select id="ir"><option value="rep">Rep</option><option value="admin">Admin</option></select></div>
+          ${SUPER ? `<div><label for="it">Team</label><select id="it">${teamOpts(ALL ? (ME.team_id || teams[0]?.id) : sel, false)}</select></div>` : ""}
           <button class="btn small" type="submit">Create invite link</button>
         </form>
         <div id="invout"></div>
       </div>
     </div>
-    <div class="card"><div class="eyebrow" style="margin-bottom:8px">Team</div><div class="scroll-x"><table>
-      <thead><tr><th>Name</th><th>Level</th><th>Scored / tries</th><th>Last 5</th><th>Trend</th><th>Focus</th><th>Last sign-in</th><th></th></tr></thead>
+    <div class="card"><div class="eyebrow" style="margin-bottom:8px">${esc(teamName) || "Team"}</div><div class="scroll-x"><table>
+      <thead><tr><th>Name</th>${SUPER ? "<th>Team</th>" : ""}<th>Level</th><th>Scored / tries</th><th>Last 5</th><th>Trend</th><th>Focus</th><th>Last sign-in</th><th></th></tr></thead>
       <tbody>${users.map(u => `<tr>
-        <td><div style="font-weight:700">${esc(u.name)}</div><div class="faint" style="font-size:12px">${esc(u.email)}${u.role==="admin"?" · admin":""}${u.status!=="active"?` · ${esc(u.status)}`:""}</div></td>
+        <td><div style="font-weight:700">${esc(u.name)}</div><div class="faint" style="font-size:12px">${esc(u.email)}${u.super_admin?" · super admin":u.role==="admin"?" · admin":""}${u.status!=="active"?` · ${esc(u.status)}`:""}</div></td>
+        ${SUPER ? `<td><select data-move="${u.id}" aria-label="Team for ${esc(u.name)}" style="min-width:130px">${teams.map(t => `<option value="${t.id}"${t.id===u.team_id?" selected":""}>${esc(t.code)}</option>`).join("")}</select></td>` : ""}
         <td>${esc(u.level)}</td><td class="mono">${u.graded_calls} / ${u.attempts}</td>
         <td class="mono" style="color:${scoreColor(u.last5_avg)}">${u.last5_avg ?? "–"}</td>
         <td class="mono">${u.trend == null ? "–" : (u.trend > 0 ? "+" : "") + u.trend.toFixed(2)}</td>
@@ -349,25 +369,38 @@ async function paneAdmin(pane){
           ${u.graded_calls ? `<button class="btn ghost small" type="button" data-view="${u.id}" data-name="${esc(u.name)}">Progress</button>` : ""}
           ${u.status==="active" && u.id!==ME.id ? `<button class="btn danger small" type="button" data-act="disable" data-id="${u.id}">Disable</button>` : ""}
           ${u.status==="disabled" ? `<button class="btn ghost small" type="button" data-act="enable" data-id="${u.id}">Enable</button>` : ""}
-          ${u.status==="invited" ? `<button class="btn ghost small" type="button" data-reinvite="${u.id}" data-name="${esc(u.name)}" data-email="${esc(u.email)}">New link</button>` : ""}
+          ${u.status==="invited" ? `<button class="btn ghost small" type="button" data-reinvite="${u.id}" data-name="${esc(u.name)}" data-email="${esc(u.email)}" data-role="${esc(u.role)}" data-team="${u.team_id ?? ""}">New link</button>` : ""}
         </div></td></tr>`).join("")}</tbody></table></div></div>
     <div class="card"><div class="eyebrow" style="margin-bottom:8px">Recent calls</div><div class="scroll-x"><table>
-      <thead><tr><th>When</th><th>Rep</th><th>Status</th><th>Score</th><th>Outcome</th><th></th></tr></thead>
-      <tbody>${calls.slice(0,60).map(c => `<tr><td class="faint" style="font-size:13px">${esc(fmtDate(c.started_at || c.queued_at))}</td><td>${esc(c.name)}</td>
+      <thead><tr><th>When</th><th>Rep</th>${ALL ? "<th>Team</th>" : ""}<th>Status</th><th>Score</th><th>Outcome</th><th></th></tr></thead>
+      <tbody>${calls.slice(0,60).map(c => `<tr><td class="faint" style="font-size:13px">${esc(fmtDate(c.started_at || c.queued_at))}</td><td>${esc(c.name)}</td>${ALL ? `<td class="faint" style="font-size:13px">${esc(c.team_code || "")}</td>` : ""}
         <td>${esc(STATUS[c.status] || c.status)}${c.error ? `<div class="faint" style="font-size:12px">${esc(c.error)}</div>` : ""}</td>
         <td class="mono" style="color:${scoreColor(c.overall)}">${c.overall == null ? "–" : c.overall.toFixed(1)}</td><td>${esc(OUTCOMES[c.outcome] || "")}</td>
         <td>${c.status==="graded" ? `<button class="btn ghost small" type="button" data-attempt="${c.id}">Debrief</button>` : c.status==="failed" ? `<button class="btn ghost small" type="button" data-regrade="${c.id}">Retry scoring</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>
     <div id="upane"></div>`));
-  document.getElementById("capf").onsubmit = async ev => { ev.preventDefault(); await api("/api/admin/capacity", {method:"PUT", body:{max_concurrent_calls:+capn.value}}); renderHome(); };
+  if (SUPER){
+    document.getElementById("tsel").onchange = e => { store.set("dial_team", e.target.value); renderHome(); };
+    document.getElementById("teamf").onsubmit = async ev => { ev.preventDefault();
+      try { const t = await api("/api/admin/teams", {body:{code:tc.value, name:tn.value}}); store.set("dial_team", String(t.id)); renderHome(); }
+      catch(err){ document.getElementById("teamout").replaceChildren(h(`<div class="err">${esc(err.message)}</div>`)); } };
+    pane.querySelectorAll("[data-move]").forEach(s => s.onchange = async () => {
+      if (!confirm("Move this person to " + s.options[s.selectedIndex].text + "? Their calls and scores move with them.")) { renderHome(); return; }
+      await api(`/api/admin/users/${s.dataset.move}/team`, {body:{team_id:+s.value}}); renderHome(); });
+  }
+  const capf = document.getElementById("capf");
+  if (capf) capf.onsubmit = async ev => { ev.preventDefault(); await api("/api/admin/capacity", {method:"PUT", body:{max_concurrent_calls:+capn.value}}); renderHome(); };
   const showInvite = r => {
     document.getElementById("invout").replaceChildren(h(`<div class="stack" style="gap:8px"><div class="note">${esc(r.note)}</div>
       <input readonly value="${esc(r.invite_url)}" id="link" aria-label="Invite link"><button class="btn ghost small" type="button" id="copy">Copy link</button></div>`));
     document.getElementById("copy").onclick = () => { const l = document.getElementById("link"); l.select(); navigator.clipboard?.writeText(l.value); };
   };
   document.getElementById("invf").onsubmit = async ev => { ev.preventDefault();
-    try { showInvite(await api("/api/admin/invites", {body:{name:document.getElementById("in").value, email:ie.value, role:ir.value}})); }
+    const it = document.getElementById("it");
+    try { showInvite(await api("/api/admin/invites", {body:{name:document.getElementById("in").value, email:ie.value, role:ir.value, team_id: it ? +it.value : null}})); }
     catch(err){ document.getElementById("invout").replaceChildren(h(`<div class="err">${esc(err.message)}</div>`)); } };
-  pane.querySelectorAll("[data-reinvite]").forEach(b => b.onclick = async () => showInvite(await api("/api/admin/invites", {body:{name:b.dataset.name, email:b.dataset.email}})));
+  pane.querySelectorAll("[data-reinvite]").forEach(b => b.onclick = async () => {
+    try { showInvite(await api("/api/admin/invites", {body:{name:b.dataset.name, email:b.dataset.email, role:b.dataset.role || "rep", team_id: b.dataset.team ? +b.dataset.team : null}})); }
+    catch(err){ document.getElementById("invout").replaceChildren(h(`<div class="err">${esc(err.message)}</div>`)); } });
   pane.querySelectorAll("[data-act]").forEach(b => b.onclick = async () => { if (b.dataset.act==="disable" && !confirm("Disable this account and sign them out everywhere?")) return; await api(`/api/admin/users/${b.dataset.id}/${b.dataset.act}`, {method:"POST"}); renderHome(); });
   pane.querySelectorAll("[data-attempt]").forEach(b => b.onclick = () => renderDebrief(+b.dataset.attempt));
   pane.querySelectorAll("[data-regrade]").forEach(b => b.onclick = async () => { await api(`/api/admin/calls/${b.dataset.regrade}/regrade`, {method:"POST"}); renderHome(); });
