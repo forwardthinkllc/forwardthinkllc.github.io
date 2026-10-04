@@ -150,6 +150,20 @@ const OUTCOMES = {meeting_booked:"Meeting booked", callback_agreed:"Callback agr
   graceful_exit:"Clean exit", they_moved_on:"They moved on", rep_ended_abruptly:"Ended abruptly"};
 const MOODS = ["neutral","warm","interested","amused","skeptical","thinking","distracted","closed","annoyed"];
 const isNet = x => (x && (x.practice || x)) === "networking";
+// Cold calls: what the prospect's tone means, and a nudge that never gives away what's behind it.
+const PHONE_TIPS = {
+  warm:       [7,   "Warming up",          "They're comfortable. Keep it short and keep asking about them."],
+  amused:     [6.5, "Enjoying the call",   "Good rapport. Don't let it drift; get to your reason."],
+  interested: [6,   "Interested",          "They're leaning in. One follow-up, then ask for a specific time."],
+  thinking:   [4.5, "Thinking it over",    "Give them a second. Silence is fine."],
+  neutral:    [4,   "Listening",           "Give them a clear reason for the call in one sentence."],
+  skeptical:  [3,   "Not convinced",       "Answer plainly in one sentence, then ask a question."],
+  distracted: [2,   "Losing interest",     "Shorten up. One sentence, one question."],
+  closed:     [1,   "Wants off the call",  "Respect it. Get a route, a name or a callback time, and thank them."],
+  annoyed:    [0,   "Something landed wrong", "Own it in one sentence and back off. Don't argue."],
+};
+const ASK30_RE = /\b(30|thirty)[\s-]*(seconds?|secs?)\b/i;
+
 // What each expression means for the rep, where it sits from cold (0) to warm (7), and what to do about it.
 const MOOD_GUIDE = {
   warm:       [7,   "Warming up to you",          "Good. Keep the focus on them."],
@@ -871,7 +885,8 @@ async function startCall(card){
   try { tones().ctx.resume(); } catch(e){}   // unlock audio while the tap still counts as a gesture
   Object.assign(CALL, {id:card.id, card, lines:[], ended:false, t0:null, muted:false, captions:false, pingTimer:null, clockTimer:null, pc:null, dc:null, mic:null, keepalive:null, connecting:false, hungUp:false,
     net: isNet(card), mood: "neutral", talking: false, faceImgs: {}, room: null, mouthRaf: null,
-    temp: 4, lastScore: 4, trend: 0, repSince: null, botSpeaking: false});
+    temp: 4, lastScore: 4, trend: 0, repSince: null, botSpeaking: false,
+    phase: isNet(card) ? "net" : (card.rep_card.dialing === "main office line" ? "gk" : "dm"), phaseStart: null, questions: 0, ask30: null});
   CALL.caller = CALL.net ? {name: card.rep_card.target, sub: card.rep_card.company}
                          : {name: card.rep_card.company, sub: card.rep_card.dialing === "direct line" ? "Direct line" : "Main office"};
   if (CALL.net) preloadFace(card.rep_card.face || "w1");
@@ -973,9 +988,10 @@ async function connectVoice(iceServers){
     switch (m.type){
       case "bot-started-speaking": if (!CALL.t0) pickedUp(); CALL.botSpeaking = true; wave("on"); break;
       case "bot-stopped-speaking": CALL.botSpeaking = false; wave(""); break;
-      case "user-started-speaking": wave("me"); if (!CALL.repSince) CALL.repSince = Date.now(); break;
+      case "user-started-speaking": wave("me"); if (!CALL.repSince) CALL.repSince = Date.now();
+        if (CALL.ask30 && CALL.ask30.waiting){ CALL.ask30.waiting = false; CALL.ask30.start = Date.now(); } break;
       case "user-stopped-speaking": wave(""); CALL.repSince = null; updateGuide(); break;
-      case "user-transcription": if (d.final && d.text) addLine({speaker: "rep", text: d.text}); break;
+      case "user-transcription": if (d.final && d.text){ addLine({speaker: "rep", text: d.text}); repSaid(d.text); } break;
       case "bot-output": if (d.text && d.aggregated_by === "sentence") addLine({speaker: "them", text: d.text}); break;
       case "server-message": serverMessage(d); break;
     }
@@ -1009,6 +1025,7 @@ function hangUpMedia(){
 function pickedUp(){
   try { tones().stopRing(); } catch(e){}
   CALL.t0 = Date.now();
+  if (!CALL.phaseStart) CALL.phaseStart = Date.now();
   CALL.clockTimer = setInterval(tick, 500);
   if (CALL.state !== "voicemail") renderLive("connected");
 }
@@ -1016,15 +1033,67 @@ function pickedUp(){
 function serverMessage(m){
   const d = (m && (m.data || m)) || {};
   if (d.type === "hangup"){ prospectHungUp(); return; }
-  if (d.type === "mood"){ if (MOODS.includes(d.mood)){ setMood(d.mood); drawFace(); } return; }
+  if (d.type === "mood"){ if (MOODS.includes(d.mood)){ setMood(d.mood); if (CALL.net) drawFace(); } return; }
   if (d.type === "transfer") renderLive("transfer");
-  else if (d.type === "caller"){ CALL.caller = {name: d.name, sub: `${d.title}, ${d.company}`}; renderLive("connected"); }
-  else if (d.type === "voicemail") renderLive("voicemail");
+  else if (d.type === "caller"){ CALL.caller = {name: d.name, sub: `${d.title}, ${d.company}`};
+    Object.assign(CALL, {phase: "dm", phaseStart: Date.now(), questions: 0, ask30: null, mood: "neutral", temp: 4, lastScore: 4, trend: 0}); renderLive("connected"); }
+  else if (d.type === "voicemail"){ CALL.phase = "vm"; renderLive("voicemail"); }
 }
 
-function tick(){ const el = document.getElementById("clock"); if (el && CALL.t0) el.textContent = fmtTime((Date.now() - CALL.t0)/1000); if (CALL.net) updateGuide(); }
+function tick(){ const el = document.getElementById("clock"); if (el && CALL.t0) el.textContent = fmtTime((Date.now() - CALL.t0)/1000); updateGuide(); }
+
+// ---- cold calls: what the rep said (for the guide only; scoring happens on the server)
+function repSaid(text){
+  if (CALL.net || CALL.phase !== "dm") return;
+  CALL.questions += (text.match(/\?/g) || []).length;
+  if (!CALL.ask30 && ASK30_RE.test(text)){
+    const permission = /\?\s*$/.test(text.trim());
+    CALL.ask30 = {waiting: permission, start: permission ? null : Date.now() - 2000};
+  } else if (CALL.ask30 && !CALL.ask30.done && CALL.ask30.start && /\?\s*$/.test(text.trim())){
+    CALL.ask30.done = true;   // handed it back with a question
+  }
+}
+function callCue(){
+  const now = Date.now(), inPhase = CALL.phaseStart ? (now - CALL.phaseStart) / 1000 : 0;
+  const held = CALL.repSince ? (now - CALL.repSince) / 1000 : 0;
+  if (CALL.phase === "gk"){
+    if (held >= 12) return ["Keep it to one breath with the front desk. Wrap the thought.", "warn"];
+    if (inPhase >= 90) return [`${fmtTime(inPhase)} with the front desk. Ask for the best route: an email and a good time.`, "hot"];
+    if (inPhase >= 45) return [`${fmtTime(inPhase)} with the front desk. Aim to be through or routed by one minute.`, "warn"];
+    return ["Name, company and a one-line reason. Then ask for the person.", ""];
+  }
+  if (CALL.phase === "dm"){
+    const a = CALL.ask30;
+    if (a && a.start && !a.done){
+      const used = (now - a.start) / 1000;
+      if (used >= 30) return ["You asked for 30 seconds and you're past it. Land it with a question now.", "hot"];
+      return [`Your 30 seconds: ${Math.ceil(30 - used)} left. End with a question.`, "warn"];
+    }
+    if (held >= 30) return [`You've had the floor ${Math.floor(held)} seconds. Finish the thought and ask them something.`, "warn"];
+    if (CALL.questions >= 3) return ["That's plenty of discovery for a cold call. Play back what you heard in one sentence and ask for a specific time.", "warn"];
+    if (inPhase >= 300) return ["You're in the window where meetings get booked. If you've heard a reason, ask for a specific day and time.", ""];
+  }
+  return null;
+}
 
 // ---- networking: the guide under the face (which way the conversation is going, and what to do)
+function updateCallGuide(g){
+  if (CALL.phase === "vm"){ if (g.dataset.html !== "vm"){ g.dataset.html = "vm"; g.innerHTML = `<div class="tip">Voicemail: your name, a one-line reason, your number twice. Under 25 seconds.</div>`; } return; }
+  const [, read, tip] = PHONE_TIPS[CALL.mood] || PHONE_TIPS.neutral;
+  const cue = callCue();
+  let tipText = tip, cls = CALL.mood === "annoyed" ? "hot" : (CALL.mood === "distracted" || CALL.mood === "closed") ? "warn" : "";
+  if (cue && (cue[1] || CALL.mood === "neutral" || CALL.phase === "gk")){ tipText = cue[0]; cls = cue[1] || cls; }
+  const arrow = CALL.trend > 0 ? "▲" : CALL.trend < 0 ? "▼" : "▶";
+  const color = CALL.trend > 0 ? "var(--green-t)" : CALL.trend < 0 ? "var(--amber-t)" : "var(--muted)";
+  const pos = Math.max(2, Math.min(98, CALL.temp / 7 * 100));
+  const who = CALL.phase === "gk" ? "Front desk" : "Prospect";
+  const html = `<div class="read"><span style="color:${color}" aria-hidden="true">${arrow}</span><span>${who}: ${esc(read.toLowerCase())}</span></div>
+    <div class="meter" role="meter" aria-label="How the call is going" aria-valuemin="0" aria-valuemax="7" aria-valuenow="${CALL.temp.toFixed(1)}"><i style="left:${pos}%"></i></div>
+    <div class="ends"><span>Cooling</span><span>Warming</span></div>
+    <div class="tip ${cls}">${esc(tipText)}</div>`;
+  if (g.dataset.html !== html){ g.dataset.html = html; g.innerHTML = html; }
+}
+
 function setMood(m){
   const sc = (MOOD_GUIDE[m] || MOOD_GUIDE.neutral)[0];
   CALL.trend = sc > CALL.lastScore ? 1 : sc < CALL.lastScore ? -1 : 0;
@@ -1035,6 +1104,7 @@ function setMood(m){
 }
 function updateGuide(){
   const g = document.getElementById("guide"); if (!g) return;
+  if (!CALL.net) return updateCallGuide(g);
   const [, read, tip] = MOOD_GUIDE[CALL.mood] || MOOD_GUIDE.neutral;
   const held = CALL.repSince ? (Date.now() - CALL.repSince) / 1000 : 0;
   let tipText = tip, cls = CALL.mood === "annoyed" ? "hot" : (CALL.mood === "distracted" || CALL.mood === "closed") ? "warn" : "";
@@ -1066,6 +1136,7 @@ function renderLive(state, position){
     <div id="clock" class="mono" style="font-size:20px;min-height:28px">${CALL.t0 ? fmtTime((Date.now()-CALL.t0)/1000) : ""}</div>
     ${status ? `<div class="pill" style="font-size:13px" role="status">${esc(status)}</div>` : ""}
     <div id="wave" class="wave" aria-hidden="true">${"<i></i>".repeat(14)}</div>
+    ${live && state !== "transfer" ? `<div id="guide" class="guide" aria-live="polite"></div>` : ""}
     <div id="caps" class="captions ${CALL.captions ? "" : "hidden"}" aria-live="polite"></div>
     ${!CALL.captions ? '<div style="flex:1"></div>' : ""}
     <div class="row" style="gap:20px;margin-top:8px">
@@ -1076,6 +1147,7 @@ function renderLive(state, position){
   const caps = document.getElementById("caps");
   CALL.lines.forEach(l => caps.appendChild(bubble(l)));
   caps.scrollTop = caps.scrollHeight;
+  updateGuide();
   document.getElementById("hang").onclick = () => endCall(true);
   const mute = document.getElementById("mute");
   if (mute) mute.onclick = () => { CALL.muted = !CALL.muted; mute.setAttribute("aria-pressed", CALL.muted); try { CALL.mic.getAudioTracks().forEach(t => t.enabled = !CALL.muted); } catch(e){} };
