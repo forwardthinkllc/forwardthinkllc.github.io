@@ -112,6 +112,7 @@ table{width:100%;border-collapse:collapse;font-size:14px} th{text-align:left;col
 .guide .read{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
 .guide .tip{font-size:14px;line-height:1.4;color:var(--text2);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
 .guide .tip.warn{border-color:#6B4A17;background:#33280F;color:#F5E3BC}
+.guide .tip.go{border-color:#2E5E45;background:var(--green-bg);color:#D8F0E3}
 .guide .tip.hot{border-color:#6B2B2E;background:var(--red-bg);color:#F5D0D0}
 .badge{display:inline-flex;flex-direction:column;align-items:center;padding:8px 16px;border-radius:10px;background:#F4F1EA;color:#1B232C;min-width:180px}
 .badge b{font-size:18px} .badge span{font-size:13px;color:#4A5561}
@@ -394,6 +395,7 @@ async function paneTabPractice(pane, practice){
       <div class="kv"><span>Industry</span><span>${esc(rc.industry.replace(/^an? /,"").replace(/^./,c=>c.toUpperCase()))}</span></div>
       <div class="kv"><span>Location</span><span>${esc(rc.location)}</span></div>
       <div class="kv"><span>Size</span><span>${esc(rc.size.replace("about ",""))}</span></div>
+      ${rc.revenue ? `<div class="kv"><span>Est. revenue</span><span>${esc(rc.revenue)}</span></div>` : ""}
       <div style="height:1px;background:var(--line)"></div>
       <div class="kv" style="align-items:center"><span>You're dialing</span><span class="pill">${esc(rc.dialing.replace(/^./,c=>c.toUpperCase()))}</span></div>
     </div>
@@ -992,7 +994,7 @@ async function connectVoice(iceServers){
         if (CALL.ask30 && CALL.ask30.waiting){ CALL.ask30.waiting = false; CALL.ask30.start = Date.now(); } break;
       case "user-stopped-speaking": wave(""); CALL.repSince = null; updateGuide(); break;
       case "user-transcription": if (d.final && d.text){ addLine({speaker: "rep", text: d.text}); repSaid(d.text); } break;
-      case "bot-output": if (d.text && d.aggregated_by === "sentence") addLine({speaker: "them", text: d.text}); break;
+      case "bot-output": if (d.text && d.aggregated_by === "sentence"){ addLine({speaker: "them", text: d.text}); themSaid(d.text); } break;
       case "server-message": serverMessage(d); break;
     }
   };
@@ -1036,15 +1038,25 @@ function serverMessage(m){
   if (d.type === "mood"){ if (MOODS.includes(d.mood)){ setMood(d.mood); if (CALL.net) drawFace(); } return; }
   if (d.type === "transfer") renderLive("transfer");
   else if (d.type === "caller"){ CALL.caller = {name: d.name, sub: `${d.title}, ${d.company}`};
-    Object.assign(CALL, {phase: "dm", phaseStart: Date.now(), questions: 0, ask30: null, mood: "neutral", temp: 4, lastScore: 4, trend: 0}); renderLive("connected"); }
+    Object.assign(CALL, {phase: "dm", phaseStart: Date.now(), questions: 0, ask30: null, askedWhy: null, menuDone: false, menuAt: null, mood: "neutral", temp: 4, lastScore: 4, trend: 0}); renderLive("connected"); }
   else if (d.type === "voicemail"){ CALL.phase = "vm"; renderLive("voicemail"); }
 }
 
 function tick(){ const el = document.getElementById("clock"); if (el && CALL.t0) el.textContent = fmtTime((Date.now() - CALL.t0)/1000); updateGuide(); }
 
-// ---- cold calls: what the rep said (for the guide only; scoring happens on the server)
+// ---- cold calls: what was said (for the guide only; scoring happens on the server)
+const ASKED_WHY_RE = /what('?s| is) (this|it) (about|regarding|in reference to)|what can i (do|help)|how can i help|what do you (want|need)|what are you (calling|selling)|why are you calling|what('?s| is) this for/i;
+function themSaid(text){
+  if (CALL.net || CALL.phase !== "dm" || CALL.menuDone) return;
+  if (ASKED_WHY_RE.test(text)) CALL.askedWhy = Date.now();
+}
 function repSaid(text){
   if (CALL.net || CALL.phase !== "dm") return;
+  if (CALL.askedWhy){   // their answer to "what's this about?": did it offer a few problems to pick from?
+    const menu = /one of (three|3|a few)|three (things|problems|areas)|(a )?few things|usually it'?s/i.test(text) || ((text.match(/,/g) || []).length >= 2 && /\bor\b/i.test(text));
+    CALL.askedWhy = null;
+    if (menu){ CALL.menuDone = true; CALL.menuAt = Date.now(); }
+  }
   CALL.questions += (text.match(/\?/g) || []).length;
   if (!CALL.ask30 && ASK30_RE.test(text)){
     const permission = /\?\s*$/.test(text.trim());
@@ -1070,6 +1082,8 @@ function callCue(){
       return [`Your 30 seconds: ${Math.ceil(30 - used)} left. End with a question.`, "warn"];
     }
     if (held >= 30) return [`You've had the floor ${Math.floor(held)} seconds. Finish the thought and ask them something.`, "warn"];
+    if (CALL.askedWhy && !CALL.repSince) return ["They asked what it's about. A strong move: three problems owners in their industry deal with, then ask which one fits.", "go"];
+    if (CALL.menuAt && now - CALL.menuAt < 15000) return ["Good. Let them pick, then one follow-up on what they say.", "go"];
     if (CALL.questions >= 3) return ["That's plenty of discovery for a cold call. Play back what you heard in one sentence and ask for a specific time.", "warn"];
     if (inPhase >= 300) return ["You're in the window where meetings get booked. If you've heard a reason, ask for a specific day and time.", ""];
   }
@@ -1109,8 +1123,12 @@ function updateGuide(){
   const held = CALL.repSince ? (Date.now() - CALL.repSince) / 1000 : 0;
   let tipText = tip, cls = CALL.mood === "annoyed" ? "hot" : (CALL.mood === "distracted" || CALL.mood === "closed") ? "warn" : "";
   const cue = camCue();
+  const mins = CALL.t0 ? (Date.now() - CALL.t0) / 60000 : 0;
   if (held >= 20){ tipText = `You've had the floor ${Math.floor(held)} seconds. Finish the thought and ask them something.`; cls = "warn"; }
   else if (cue){ tipText = cue; cls = "warn"; }
+  else if (mins >= 9.5){ tipText = "Last chance: name the next step now, or thank them and let them go."; cls = "hot"; }
+  else if (mins >= 8){ tipText = "You're at 8 minutes. Name the reason to follow up and wrap it."; cls = "warn"; }
+  else if (mins >= 6 && ["neutral","warm","interested","amused","thinking"].includes(CALL.mood)){ tipText = "Six minutes in. Start looking for the reason to follow up."; }
   const arrow = CALL.trend > 0 ? "▲" : CALL.trend < 0 ? "▼" : "▶";
   const color = CALL.trend > 0 ? "var(--green-t)" : CALL.trend < 0 ? "var(--amber-t)" : "var(--muted)";
   const pos = Math.max(2, Math.min(98, CALL.temp / 7 * 100));
