@@ -7,8 +7,8 @@
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#0E1217">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Dial Practice">
-<title>Dial Practice</title>
+<meta name="apple-mobile-web-app-title" content="Skills Practice">
+<title>Skills Practice</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script>
@@ -94,6 +94,27 @@ table{width:100%;border-collapse:collapse;font-size:14px} th{text-align:left;col
 .md ul{padding-left:18px;margin:0 0 8px}
 .md strong{color:var(--text)}
 .md em{color:#D8F0E3;font-style:normal;background:var(--green-bg);padding:1px 4px;border-radius:4px}
+/* ---- networking: the face */
+.face-wrap{position:relative;width:min(72vw,320px,40vh);aspect-ratio:1;border-radius:24px;overflow:hidden;background:var(--surface2);flex-shrink:0}
+.face-wrap img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.face-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(circle at 50% 38%,#2A3644,#161C24 70%)}
+.face-ph .ini{width:120px;height:120px;border-radius:50%;background:#2E3B49;display:flex;align-items:center;justify-content:center;font-size:44px;font-weight:800;color:#CFE3EE;transition:transform .08s}
+.face-ph.talk .ini{transform:scale(1.04)}
+.selfview{position:absolute;right:10px;top:10px;width:28%;aspect-ratio:3/4;border-radius:12px;overflow:hidden;border:2px solid rgba(238,241,244,.55);background:#000;z-index:2}
+.selfview video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.camtoggle{display:flex;gap:12px;align-items:flex-start;cursor:pointer;font-size:15px;font-weight:400;color:var(--text);margin:0}
+.camtoggle input{width:20px;height:20px;margin:2px 0 0;flex-shrink:0;accent-color:var(--green)}
+.mood-chip{position:absolute;left:12px;bottom:12px;font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;background:rgba(14,18,23,.72);color:#E5EDF4;text-transform:capitalize}
+.guide{width:100%;max-width:360px;display:flex;flex-direction:column;gap:6px}
+.guide .meter{position:relative;height:10px;border-radius:5px;background:linear-gradient(90deg,#D93D42 0%,#F2A93D 38%,#8FA3B5 55%,#2FBF71 100%)}
+.guide .meter i{position:absolute;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#EEF1F4;border:3px solid #0E1217;box-shadow:0 0 0 1px #3A4450;transition:left .6s ease}
+.guide .ends{display:flex;justify-content:space-between;font-size:11px;color:var(--faint);text-transform:uppercase;letter-spacing:.06em}
+.guide .read{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+.guide .tip{font-size:14px;line-height:1.4;color:var(--text2);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+.guide .tip.warn{border-color:#6B4A17;background:#33280F;color:#F5E3BC}
+.guide .tip.hot{border-color:#6B2B2E;background:var(--red-bg);color:#F5D0D0}
+.badge{display:inline-flex;flex-direction:column;align-items:center;padding:8px 16px;border-radius:10px;background:#F4F1EA;color:#1B232C;min-width:180px}
+.badge b{font-size:18px} .badge span{font-size:13px;color:#4A5561}
 .hidden{display:none !important}
 @media (min-width:720px){.wrap{padding-top:40px}}
 @media (prefers-reduced-motion:reduce){.ring,.wave.on i,.wave.me i,.spin{animation:none}}
@@ -124,7 +145,23 @@ function fmtDate(iso){ if(!iso) return ""; const d = new Date(iso); return d.toL
 function scoreColor(v){ return v == null ? "var(--line2)" : v >= 3.6 ? "var(--green)" : v >= 2.8 ? "#8FA3B5" : "var(--amber)"; }
 const OUTCOMES = {meeting_booked:"Meeting booked", callback_agreed:"Callback agreed", referred_to_right_contact:"Referred to the right contact",
   email_route_obtained:"Email route", respectful_disqualification:"Clean disqualification", transferred_to_voicemail:"Sent to voicemail",
-  voicemail_left:"Voicemail left", blocked:"Blocked", hung_up:"Hung up"};
+  voicemail_left:"Voicemail left", blocked:"Blocked", hung_up:"Hung up",
+  next_step_set:"Next step set", intro_arranged:"Introduction arranged", contact_exchanged:"Swapped contact info",
+  graceful_exit:"Clean exit", they_moved_on:"They moved on", rep_ended_abruptly:"Ended abruptly"};
+const MOODS = ["neutral","warm","interested","amused","skeptical","thinking","distracted","closed","annoyed"];
+const isNet = x => (x && (x.practice || x)) === "networking";
+// What each expression means for the rep, where it sits from cold (0) to warm (7), and what to do about it.
+const MOOD_GUIDE = {
+  warm:       [7,   "Warming up to you",          "Good. Keep the focus on them."],
+  amused:     [6.5, "Enjoying the conversation",  "Nice rapport. No need to rush to business."],
+  interested: [6,   "Interested",                 "They're leaning in. Ask one more question about that."],
+  thinking:   [4.5, "Thinking it over",           "Give them a second before you add anything."],
+  neutral:    [4,   "Listening",                  "Ask something about them."],
+  skeptical:  [3,   "Not convinced",              "Get specific, or turn it back to them with a question."],
+  distracted: [2,   "Losing interest",            "Keep it short and hand it back with a question about them."],
+  closed:     [1,   "Ready to move on",           "Wrap up warmly. Offer a specific next step only if there's a real reason."],
+  annoyed:    [0,   "You hit a nerve",            "One chance: own it, back off, and change course."],
+};
 const STATUS = {graded:"Scored", grading:"Scoring…", failed:"Scoring failed", abandoned:"Didn't connect", active:"Live", queued:"Waiting"};
 
 async function api(path, opts = {}){
@@ -144,6 +181,8 @@ const ICON = {
   mic:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
   cc:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M10 10.5a2 2 0 1 0 0 3M17 10.5a2 2 0 1 0 0 3"/></svg>',
   send:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+  chat:'<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l1.9-5.2A8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z"/></svg>',
+  walk:'<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>',
   warn:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#F2C66D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:2px"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
 };
 
@@ -152,7 +191,7 @@ function renderLogin(msg){
   $app.className = "wrap";
   $app.replaceChildren(h(`
     <div class="stack" style="margin-top:8vh">
-      <div><div class="eyebrow" style="color:var(--green-t)">Dial Practice</div>
+      <div><div class="eyebrow" style="color:var(--green-t)">Skills Practice</div>
       <h1 style="margin:6px 0 0;font-size:30px;font-weight:800">Sign in</h1></div>
       ${msg ? `<div class="note">${esc(msg)}</div>` : ""}
       <form id="f" class="stack" novalidate>
@@ -177,7 +216,7 @@ function renderInvite(token){
   $app.className = "wrap";
   $app.replaceChildren(h(`
     <div class="stack" style="margin-top:8vh">
-      <div><div class="eyebrow" style="color:var(--green-t)">Dial Practice</div>
+      <div><div class="eyebrow" style="color:var(--green-t)">Skills Practice</div>
       <h1 style="margin:6px 0 0;font-size:30px;font-weight:800">Set your password</h1>
       <p class="muted" style="margin:8px 0 0">At least 10 characters, with upper and lower case.</p></div>
       <form id="f" class="stack" novalidate>
@@ -220,6 +259,7 @@ window.addEventListener("hashchange", () => {
 });
 async function practiceList(){ PRACTICES = await api("/api/practices"); return PRACTICES; }
 function practiceName(id){ return ((PRACTICES || []).find(p => p.id === id) || {}).name || "Practice"; }
+function practiceShort(p){ return p.short || p.name; }
 
 // renderHome draws whatever page the address points at. Everything that used to "go home" still calls it.
 async function renderHome(){
@@ -240,14 +280,16 @@ async function renderHome(){
 }
 
 // The bar at the top of every signed-in page.
-function pageShell({wide, title, sub, back, extra}){
+function pageShell({wide, title, sub, back, extra, brand}){
   $app.className = "wrap" + (wide ? " wide" : "");
+  brand = brand || "Skills Practice";
+  document.title = brand;
   const onAdmin = parseRoute().page === "admin";
   $app.replaceChildren(h(`
     <div class="stack">
       <div class="between">
         <button id="brand" type="button" style="background:none;border:none;padding:0;text-align:left">
-          <div class="eyebrow" style="color:var(--green-t)">Dial Practice</div>
+          <div class="eyebrow" style="color:var(--green-t)">${esc(brand)}</div>
           <div style="font-size:15px;font-weight:700;margin-top:2px">${esc(ME.name)}${ME.team_code || ME.super_admin ? `<span class="faint" style="font-size:12px;font-weight:600;white-space:nowrap"> · ${ME.super_admin ? "Super admin" : esc(ME.team_code)}</span>` : ""}</div>
         </button>
         <div class="row" style="gap:8px">
@@ -300,7 +342,7 @@ async function renderHub(){
         ${stats}</button>`;
     };
     pane.replaceChildren(h(`
-      ${last ? `<button id="resume" class="btn" type="button">Continue ${esc(last.name)}</button>` : ""}
+      ${last ? `<button id="resume" class="btn" type="button">Continue ${esc(practiceShort(last))}</button>` : ""}
       ${list.map(card).join("")}`));
     const resume = document.getElementById("resume");
     if (resume) resume.onclick = () => go(`#/p/${last.id}/practice`);
@@ -314,13 +356,14 @@ async function renderPracticePage(practice, tab){
   const p = PRACTICES.find(x => x.id === practice);
   if (!p || !p.available) return go("#/");
   store.set("dial_last_practice", practice);
-  const pane = pageShell({title: p.name, back: {label: "All practices", hash: "#/"}});
+  const pane = pageShell({brand: p.name, back: {label: "All practices", hash: "#/"}});
   pane.before(tabBar([["practice","Practice"],["progress","Progress"],["history","History"]], tab, t => `#/p/${practice}/${t}`));
   await fill(pane, () => ({practice:paneTabPractice, progress:paneProgress, history:paneHistory})[tab](pane, practice));
 }
 
 // ----------------------------------------------------------------------- practice tab
 async function paneTabPractice(pane, practice){
+  if (practice === "networking") return paneTabNetworking(pane, practice);
   const [card, lines, prog] = await Promise.all([api("/api/calls", {body:{mode:"voice", practice}}), api("/api/lines"), api("/api/progress?practice=" + encodeURIComponent(practice))]);
   const free = Math.max(0, lines.total - lines.busy);
   const rc = card.rep_card;
@@ -346,6 +389,199 @@ async function paneTabPractice(pane, practice){
       <div style="font-size:14px;font-weight:600;color:var(--text2)">Call</div>
     </div>`));
   document.getElementById("dial").onclick = () => startCall(card);
+}
+
+// ----------------------------------------------------------------------- networking: the next conversation
+async function paneTabNetworking(pane, practice){
+  const [card, lines, prog] = await Promise.all([api("/api/calls", {body:{mode:"voice", practice}}), api("/api/lines"), api("/api/progress?practice=" + encodeURIComponent(practice))]);
+  const free = Math.max(0, lines.total - lines.busy);
+  const rc = card.rep_card;
+  const them = rc.approach === "them";
+  pane.replaceChildren(h(`
+    <div class="between"><div class="muted" style="font-size:14px">${prog.graded_calls} scored conversation${prog.graded_calls===1?"":"s"} · ${esc(prog.level)}</div>
+      <span class="pill">${lines.available ? `${free} of ${lines.total} line${lines.total===1?"":"s"} free` : "Lines paused"}</span></div>
+    ${prog.focus ? `<div class="note"><strong>Your focus: ${esc(prog.focus.skill)}.</strong> Some of your conversations will lean toward it.</div>` : ""}
+    <div>
+      <div class="eyebrow" style="color:var(--green-t)">Your next conversation</div>
+      <h2 style="margin:6px 0 2px;font-size:26px;font-weight:800;line-height:1.15">${esc(rc.setting)}</h2>
+      <div style="font-size:16px;color:var(--text2)">${esc(rc.where.replace(/^./,c=>c.toUpperCase()))}</div>
+    </div>
+    <div class="card stack" style="gap:14px">
+      <div style="font-size:15px;line-height:1.5;color:var(--text2)">${esc(rc.crowd)}</div>
+      <div style="font-size:15px;line-height:1.5">${them ? esc(rc.note) : `You spot someone ${esc(rc.spot)}.${rc.note ? " " + esc(rc.note) : ""}`}</div>
+      <div style="height:1px;background:var(--line)"></div>
+      <div class="between" style="align-items:center"><span class="muted" style="font-size:14px">Their name badge</span>
+        <div class="badge" style="min-width:0"><b>${esc(rc.target)}</b><span>${esc(rc.company)}</span></div></div>
+    </div>
+    <label class="card camtoggle"><input type="checkbox" id="camon" ${camWanted() ? "checked" : ""}>
+      <span><strong>Use my camera</strong> <span class="muted">(recommended)</span><br><span class="muted" style="font-size:13px">Reads your eye contact, smiles and nods, like a real face-to-face. Nothing is recorded or sent; only the numbers.</span></span></label>
+    <p class="faint" style="font-size:13px;margin:0">Talk the way you would at a real event. Use headphones if you can. You can interrupt, and so can they; they'll move on when they would in real life.</p>
+    <div class="stack" style="align-items:center;gap:8px;margin-top:8px">
+      <button id="dial" class="dialbtn" type="button" aria-label="${them ? "Say hi" : "Walk up"}">${ICON.chat}</button>
+      <div style="font-size:14px;font-weight:600;color:var(--text2)">${them ? "Say hi" : "Walk up"}</div>
+    </div>`));
+  document.getElementById("camon").onchange = e => store.set("dial_cam", e.target.checked ? "1" : "0");
+  document.getElementById("dial").onclick = () => startCall(card);
+}
+
+// ---- the rep's camera: face tracking runs in this browser; only a numeric summary goes to the server
+function camWanted(){ return store.get("dial_cam") !== "0"; }
+const CAM = {};
+const FP = {nose: 1, eyeL: 33, eyeR: 263, eyeLin: 133, eyeRin: 362, mouthL: 61, mouthR: 291, lipTop: 13, lipBot: 14, irisL: 468, irisR: 473};
+function loadFaceMesh(){
+  if (window.FaceMesh) return Promise.resolve();
+  return new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = `${API}/vendor/face_mesh/face_mesh.js`;
+    sc.onload = res; sc.onerror = () => rej(new Error("face tracking file blocked")); document.head.appendChild(sc); });
+}
+async function camStart(){
+  Object.assign(CAM, {on: false, frames: 0, face: 0, look: 0, lookThem: 0, framesThem: 0, lookYou: 0, framesYou: 0, smile: 0, steady: 0,
+    nods: 0, nodsThem: 0, base: null, baseN: 0, pitch: [], nose: [], lastNod: 0, lastFaceAt: performance.now(), recentLook: [], buckets: [],
+    smiledEarly: false, t0: performance.now(), busy: false, timer: null, postTimer: null, error: null});
+  try {
+    CAM.stream = await navigator.mediaDevices.getUserMedia({video: {width: {ideal: 480}, height: {ideal: 360}, facingMode: "user"}, audio: false});
+  } catch(e){ CAM.error = "camera blocked"; return false; }
+  CAM.video = document.createElement("video"); CAM.video.muted = true; CAM.video.playsInline = true; CAM.video.srcObject = CAM.stream;
+  try { await CAM.video.play(); await loadFaceMesh();
+    CAM.fm = new FaceMesh({locateFile: f => `${API}/vendor/face_mesh/${f}`});
+    CAM.fm.setOptions({maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5});
+    CAM.fm.onResults(camFrame);
+    await CAM.fm.initialize();
+  } catch(e){ CAM.error = e.message || "tracking failed"; camStop(); return false; }
+  CAM.on = true;
+  const loop = async () => {               // about 8 readings a second is plenty and keeps phones cool
+    if (!CAM.on) return;
+    if (!CAM.busy){ CAM.busy = true; try { await CAM.fm.send({image: CAM.video}); } catch(e){} CAM.busy = false; }
+    CAM.timer = setTimeout(loop, 120);
+  };
+  loop();
+  CAM.postTimer = setInterval(() => camPost(false), 5000);
+  return true;
+}
+function camStop(){
+  CAM.on = false; clearTimeout(CAM.timer); clearInterval(CAM.postTimer);
+  try { CAM.stream && CAM.stream.getTracks().forEach(t => t.stop()); } catch(e){}
+  try { CAM.fm && CAM.fm.close && CAM.fm.close(); } catch(e){}
+}
+function camFrame(res){
+  const now = performance.now(), lm = res.multiFaceLandmarks && res.multiFaceLandmarks[0];
+  const who = CALL.repSince ? "you" : CALL.botSpeaking ? "them" : "";
+  CAM.frames++;
+  const sec = Math.floor((now - CAM.t0) / 10000);   // 10-second buckets for the timeline
+  const bk = CAM.buckets[sec] || (CAM.buckets[sec] = {t: sec * 10, n: 0, face: 0, look: 0, smile: 0, them: 0, you: 0});
+  bk.n++; if (who === "them") bk.them++; if (who === "you") bk.you++;
+  if (!lm){ CAM.recentLook.push({t: now, v: 0}); return; }
+  CAM.face++; bk.face++; CAM.lastFaceAt = now;
+  const d = (a, b) => Math.hypot(lm[a].x - lm[b].x, lm[a].y - lm[b].y);
+  const eye = d(FP.eyeL, FP.eyeR);
+  const mid = {x: (lm[FP.eyeL].x + lm[FP.eyeR].x) / 2, y: (lm[FP.eyeL].y + lm[FP.eyeR].y) / 2};
+  const yaw = (lm[FP.nose].x - mid.x) / eye, pitch = (lm[FP.nose].y - mid.y) / eye;
+  const ip = (i, o, n) => (lm[i].x - lm[o].x) / (lm[n].x - lm[o].x);
+  const gaze = lm.length > 473 ? (ip(FP.irisL, FP.eyeL, FP.eyeLin) + ip(FP.irisR, FP.eyeR, FP.eyeRin)) / 2 : 0.5;
+  const mouthW = d(FP.mouthL, FP.mouthR) / eye;
+  const corners = (((lm[FP.lipTop].y + lm[FP.lipBot].y) / 2) - (lm[FP.mouthL].y + lm[FP.mouthR].y) / 2) / eye;
+  if (CAM.baseN < 25){   // the first couple of seconds set this rep's neutral face
+    const b = CAM.base || (CAM.base = {pitch: 0, mouthW: 0, corners: 0});
+    b.pitch += pitch / 25; b.mouthW += mouthW / 25; b.corners += corners / 25; CAM.baseN++;
+  }
+  const b = CAM.baseN >= 25 ? CAM.base : {pitch, mouthW, corners};
+  const looking = Math.abs(yaw) < 0.13 && Math.abs(pitch - b.pitch) < 0.13 && gaze > 0.35 && gaze < 0.65;
+  const smiling = (Math.max(0, (mouthW - b.mouthW) / (b.mouthW * 0.18)) * 0.6 + Math.max(0, (corners - b.corners) / 0.04) * 0.4) > 0.55;
+  if (looking){ CAM.look++; bk.look++; }
+  if (smiling){ CAM.smile++; bk.smile++; if (now - CAM.t0 < 15000) CAM.smiledEarly = true; }
+  if (who === "them"){ CAM.framesThem++; if (looking) CAM.lookThem++; }
+  if (who === "you"){ CAM.framesYou++; if (looking) CAM.lookYou++; }
+  CAM.recentLook.push({t: now, v: looking ? 1 : 0}); while (CAM.recentLook.length && now - CAM.recentLook[0].t > 3000) CAM.recentLook.shift();
+  CAM.nose.push({t: now, x: lm[FP.nose].x / eye, y: lm[FP.nose].y / eye}); while (CAM.nose.length && now - CAM.nose[0].t > 1000) CAM.nose.shift();
+  let path = 0; for (let i = 1; i < CAM.nose.length; i++) path += Math.hypot(CAM.nose[i].x - CAM.nose[i-1].x, CAM.nose[i].y - CAM.nose[i-1].y);
+  if (path / 1.5 < 0.2) CAM.steady++;
+  CAM.pitch.push({t: now, p: pitch - b.pitch}); while (CAM.pitch.length && now - CAM.pitch[0].t > 1200) CAM.pitch.shift();
+  const ps = CAM.pitch.map(x => x.p), mx = Math.max(...ps), mn = Math.min(...ps);
+  if (CAM.baseN >= 25 && mx - mn > 0.09 && ps[ps.length - 1] - mn < 0.03 && ps.indexOf(mx) < ps.length - 1 && now - CAM.lastNod > 900){
+    CAM.nods++; CAM.lastNod = now; if (who === "them") CAM.nodsThem++;
+  }
+}
+function camSummary(){
+  const pct = (a, b) => b ? Math.round(100 * a / b) : null;
+  const secs = Math.round((performance.now() - CAM.t0) / 1000);
+  return {
+    seconds: secs, face_in_frame_pct: pct(CAM.face, CAM.frames),
+    eye_contact_pct: pct(CAM.look, CAM.face), eye_contact_while_they_talk_pct: pct(CAM.lookThem, CAM.framesThem),
+    eye_contact_while_you_talk_pct: pct(CAM.lookYou, CAM.framesYou), smile_pct: pct(CAM.smile, CAM.face),
+    smiled_in_first_15s: CAM.smiledEarly, nods: CAM.nods, nods_while_they_talk: CAM.nodsThem, steady_pct: pct(CAM.steady, CAM.face),
+    timeline: CAM.buckets.filter(Boolean).slice(0, 60).map(k => ({t: k.t, eye_contact_pct: pct(k.look, k.face), smile_pct: pct(k.smile, k.face),
+      face_pct: pct(k.face, k.n), talking: k.them > k.you ? "them" : k.you > k.them ? "you" : ""})),
+  };
+}
+function camPost(final){
+  if (!CAM.frames || !CALL.id) return Promise.resolve();
+  return api(`/api/calls/${CALL.id}/presence`, {body: {summary: camSummary(), final}}).catch(() => {});
+}
+function camCue(){
+  if (!CAM.on) return null;
+  const now = performance.now();
+  if (now - CAM.lastFaceAt > 3000) return "We can't see you. Face the camera.";
+  const r = CAM.recentLook; const share = r.length ? r.reduce((a, x) => a + x.v, 0) / r.length : 1;
+  if (CALL.botSpeaking && r.length > 10 && share < 0.3) return "Look up. They're talking to you.";
+  return null;
+}
+function attachSelfView(){
+  const face = document.getElementById("face"); if (!face || !CAM.on || !CAM.stream) return;
+  let sv = face.querySelector(".selfview");
+  if (!sv){ sv = document.createElement("div"); sv.className = "selfview"; const v = document.createElement("video"); v.muted = true; v.playsInline = true; v.autoplay = true; v.srcObject = CAM.stream; sv.appendChild(v); face.appendChild(sv); v.play().catch(() => {}); }
+}
+
+// ---- the face: realistic expression photos when they exist, a placeholder until then
+function faceSrc(face, mood, talk){ return `${API}/avatars/${face}/${mood}${talk ? "_talk" : ""}.jpg`; }
+function preloadFace(face){
+  CALL.faceImgs = {};
+  MOODS.forEach(m => [false, true].forEach(t => {
+    const img = new Image();
+    img.onload = () => { CALL.faceImgs[m + (t ? "_talk" : "")] = img.src; drawFace(); };
+    img.src = faceSrc(face, m, t);
+  }));
+}
+function drawFace(){
+  const el = document.getElementById("face"); if (!el) return;
+  const m = CALL.mood || "neutral", F = CALL.faceImgs || {};
+  const src = (CALL.talking && (F[m + "_talk"] || (F[m] ? null : F["neutral_talk"]))) || F[m] || F["neutral"];
+  if (src){
+    let img = el.querySelector("img");
+    if (!img){ el.replaceChildren(); img = document.createElement("img"); img.alt = ""; el.appendChild(img); }
+    if (img.getAttribute("src") !== src) img.setAttribute("src", src);
+    return;
+  }
+  let ph = el.querySelector(".face-ph");
+  if (!ph){ el.replaceChildren(h(`<div class="face-ph"><div class="ini">${esc(initials(CALL.caller.name))}</div></div><div class="mood-chip"></div>`)); ph = el.querySelector(".face-ph"); }
+  ph.classList.toggle("talk", !!CALL.talking);
+  el.querySelector(".mood-chip").textContent = m;
+}
+// Mouth: follow the loudness of their voice, with a short hold so it doesn't flutter.
+function watchMouth(analyser){
+  const buf = new Uint8Array(analyser.fftSize);
+  let lastOn = 0;
+  const loop = () => {
+    if (CALL.ended || !CALL.voiceChain) return;
+    analyser.getByteTimeDomainData(buf);
+    let sum = 0; for (let i = 0; i < buf.length; i++){ const v = (buf[i] - 128) / 128; sum += v * v; }
+    const rms = Math.sqrt(sum / buf.length), now = performance.now();
+    if (rms > 0.035) lastOn = now;
+    const talking = now - lastOn < 110;
+    if (talking !== CALL.talking){ CALL.talking = talking; drawFace(); }
+    CALL.mouthRaf = requestAnimationFrame(loop);
+  };
+  CALL.mouthRaf = requestAnimationFrame(loop);
+}
+// Quiet room tone so it doesn't sound like a studio.
+function startRoom(ctx){
+  try {
+    const len = ctx.sampleRate * 3, b = ctx.createBuffer(1, len, ctx.sampleRate), d = b.getChannelData(0);
+    let last = 0; for (let i = 0; i < len; i++){ last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.5; }
+    const src = ctx.createBufferSource(); src.buffer = b; src.loop = true;
+    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 700;
+    const g = ctx.createGain(); g.gain.value = 0.05;
+    src.connect(lp); lp.connect(g); g.connect(ctx.destination); src.start();
+    CALL.room = [src, lp, g];
+  } catch(e){}
 }
 
 // ----------------------------------------------------------------------- progress
@@ -377,16 +613,16 @@ async function paneProgress(pane, practice, userId){
     <div class="card" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
       <div><div class="eyebrow">Level</div><div style="font-size:20px;font-weight:800;margin-top:4px">${esc(p.level)}</div></div>
       <div><div class="eyebrow">Last 5 average</div><div class="mono" style="font-size:22px;margin-top:4px">${p.last5_avg ?? "–"} <span style="font-size:13px;color:var(--muted)">${trend}</span></div></div>
-      <div><div class="eyebrow">Scored calls</div><div class="mono" style="font-size:22px;margin-top:4px">${p.graded_calls}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_total} tries</span></div></div>
-      <div><div class="eyebrow">Meetings per conversation</div><div class="mono" style="font-size:22px;margin-top:4px">${p.booked_per_dm_conversation == null ? "–" : Math.round(p.booked_per_dm_conversation*100)+"%"}</div></div>
+      <div><div class="eyebrow">Scored ${isNet(practice) ? "conversations" : "calls"}</div><div class="mono" style="font-size:22px;margin-top:4px">${p.graded_calls}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_total} tries</span></div></div>
+      <div><div class="eyebrow">${isNet(practice) ? "Next steps per conversation" : "Meetings per conversation"}</div><div class="mono" style="font-size:22px;margin-top:4px">${p.booked_per_dm_conversation == null ? "–" : Math.round(p.booked_per_dm_conversation*100)+"%"}</div></div>
     </div>
     ${p.focus ? `<div class="card stack" style="gap:8px;background:var(--blue-bg);border-color:#27405A">
       <div class="eyebrow" style="color:var(--blue-t)">Focus skill</div>
       <div style="font-size:18px;font-weight:700">${esc(p.focus.skill)}</div>
       <div class="muted" style="font-size:14px">Weakest part: ${esc(p.focus.detail)}</div>
       <div style="font-size:14px;line-height:1.5"><strong>Drill:</strong> ${esc(p.focus.drill)}</div></div>`
-      : `<div class="note">${userId ? "A focus skill is" : "Your focus skill is"} picked after three scored calls.</div>`}
-    <div class="card stack" style="gap:10px"><div class="eyebrow">Overall score by call</div>${sparkline(p.series, userId ? "The trend line appears after two scored calls." : "")}</div>
+      : `<div class="note">${userId ? "A focus skill is" : "Your focus skill is"} picked after three scored ${isNet(practice) ? "conversations" : "calls"}.</div>`}
+    <div class="card stack" style="gap:10px"><div class="eyebrow">Overall score by ${isNet(practice) ? "conversation" : "call"}</div>${sparkline(p.series, userId ? "The trend line appears after two scored calls." : "")}</div>
     <div class="card stack" style="gap:11px"><div class="eyebrow">Recent average by phase</div>${phaseBars(p.phase_avg)}</div>`));
   return p;
 }
@@ -395,8 +631,8 @@ async function paneProgress(pane, practice, userId){
 function attemptRows(attempts, admin){
   if (!attempts.length) return `<p class="muted">No calls yet.</p>`;
   return attempts.map(a => `<button class="list-item" type="button" data-attempt="${a.id}" ${a.status==="graded"||a.status==="failed"||a.status==="grading"?"":"disabled"}>
-      <div>${admin && a.rep ? `<div class="eyebrow" style="margin-bottom:2px">${esc(a.rep)}${a.team_code ? ` · ${esc(a.team_code)}` : ""}</div>` : ""}<div style="font-weight:700">${esc(a.company)}</div>
-      <div class="muted" style="font-size:13px;margin-top:2px">${esc(fmtDate(a.date))} · ${a.path==="gatekeeper"?"Main line":"Direct"}${a.focus?` · ${esc(a.focus)} focus`:""}</div>
+      <div>${admin && a.rep ? `<div class="eyebrow" style="margin-bottom:2px">${esc(a.rep)}${a.team_code ? ` · ${esc(a.team_code)}` : ""}</div>` : ""}<div style="font-weight:700">${a.who ? esc(a.who) + " · " : ""}${esc(a.company)}</div>
+      <div class="muted" style="font-size:13px;margin-top:2px">${esc(fmtDate(a.date))} · ${a.setting ? esc(a.setting) : a.path==="gatekeeper"?"Main line":"Direct"}${a.focus?` · ${esc(a.focus)} focus`:""}</div>
       <div style="font-size:13px;margin-top:2px;color:var(--text2)">${esc(a.outcome ? OUTCOMES[a.outcome] || a.outcome : STATUS[a.status] || a.status)}</div></div>
       <div class="mono" style="font-size:20px;color:${scoreColor(a.overall)}">${a.overall == null ? "–" : a.overall.toFixed(1)}</div>
     </button>`).join("");
@@ -428,7 +664,7 @@ async function renderAdminPage(section, tab){
   if (!PRACTICES) await practiceList();
   const avail = PRACTICES.filter(p => p.available);
   if (!section || (section !== "people" && !avail.find(p => p.id === section))) return go(`#/admin/${avail[0].id}/progress`);
-  const sections = PRACTICES.map(p => [p.id, p.available ? p.name : p.name + " · soon", !p.available]).concat([["people", "People & teams"]]);
+  const sections = PRACTICES.map(p => [p.id, p.available ? practiceShort(p) : practiceShort(p) + " · soon", !p.available]).concat([["people", "People & teams"]]);
   const pane = pageShell({wide: true, title: "Coaching", sub: ME.super_admin ? "Every team" : (ME.team_code || "")});
   pane.before(tabBar(sections, section, s => s === "people" ? "#/admin/people" : `#/admin/${s}/progress`));
   if (section === "people") return fill(pane, () => panePeople(pane));
@@ -454,8 +690,8 @@ async function paneTeamProgress(pane, practice, T){
     <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px">
       <div><div class="eyebrow">Reps practicing</div><div class="mono" style="font-size:22px;margin-top:4px">${p.reps_practicing}<span style="font-size:13px;color:var(--muted)"> of ${p.reps}</span></div></div>
       <div><div class="eyebrow">Team last 5 average</div><div class="mono" style="font-size:22px;margin-top:4px">${p.last5_avg ?? "–"} <span style="font-size:13px;color:var(--muted)">${trend}</span></div></div>
-      <div><div class="eyebrow">Scored calls</div><div class="mono" style="font-size:22px;margin-top:4px">${p.graded_calls}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_total} tries</span></div></div>
-      <div><div class="eyebrow">Meetings per conversation</div><div class="mono" style="font-size:22px;margin-top:4px">${p.booked_per_dm_conversation == null ? "–" : Math.round(p.booked_per_dm_conversation*100)+"%"}</div></div>
+      <div><div class="eyebrow">Scored ${isNet(practice) ? "conversations" : "calls"}</div><div class="mono" style="font-size:22px;margin-top:4px">${p.graded_calls}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_total} tries</span></div></div>
+      <div><div class="eyebrow">${isNet(practice) ? "Next steps per conversation" : "Meetings per conversation"}</div><div class="mono" style="font-size:22px;margin-top:4px">${p.booked_per_dm_conversation == null ? "–" : Math.round(p.booked_per_dm_conversation*100)+"%"}</div></div>
     </div>
     ${p.team_focus ? `<div class="card stack" style="gap:8px;background:var(--blue-bg);border-color:#27405A">
       <div class="eyebrow" style="color:var(--blue-t)">Most common focus skill</div>
@@ -633,11 +869,20 @@ function tones(){
 
 async function startCall(card){
   try { tones().ctx.resume(); } catch(e){}   // unlock audio while the tap still counts as a gesture
-  Object.assign(CALL, {id:card.id, card, lines:[], ended:false, t0:null, muted:false, captions:false, pingTimer:null, clockTimer:null, pc:null, dc:null, mic:null, keepalive:null, connecting:false, hungUp:false});
-  CALL.caller = {name: card.rep_card.company, sub: card.rep_card.dialing === "direct line" ? "Direct line" : "Main office"};
-  // Ask for the microphone now, while the rep's tap still counts as a user gesture.
+  Object.assign(CALL, {id:card.id, card, lines:[], ended:false, t0:null, muted:false, captions:false, pingTimer:null, clockTimer:null, pc:null, dc:null, mic:null, keepalive:null, connecting:false, hungUp:false,
+    net: isNet(card), mood: "neutral", talking: false, faceImgs: {}, room: null, mouthRaf: null,
+    temp: 4, lastScore: 4, trend: 0, repSince: null, botSpeaking: false});
+  CALL.caller = CALL.net ? {name: card.rep_card.target, sub: card.rep_card.company}
+                         : {name: card.rep_card.company, sub: card.rep_card.dialing === "direct line" ? "Direct line" : "Main office"};
+  if (CALL.net) preloadFace(card.rep_card.face || "w1");
+  CALL.camAsked = CALL.net && camWanted();
+  // Ask for the microphone (and camera, for networking) now, while the rep's tap still counts as a user gesture.
   try { const s = await navigator.mediaDevices.getUserMedia({audio:true}); s.getTracks().forEach(t => t.stop()); }
   catch(e){ return failCall("Your microphone is blocked. Allow microphone access for this page, then try again."); }
+  if (CALL.camAsked){
+    try { const v = await navigator.mediaDevices.getUserMedia({video:true}); v.getTracks().forEach(t => t.stop()); }
+    catch(e){ CALL.camAsked = false; CALL.camNote = "Camera blocked, so this one is voice only."; }
+  }
   renderLive("dialing");
   let r;
   try { r = await api(`/api/calls/${card.id}/dial`, {body:{mode:"voice"}}); }
@@ -654,7 +899,7 @@ function handleState(r){
   if (r.status === "active" && r.voice && !CALL.connecting){
     CALL.connecting = true;
     renderLive("ringing");
-    try { tones().ring(); } catch(e){}
+    if (!CALL.net) try { tones().ring(); } catch(e){}
     connectVoice(r.ice_servers || []);
     return;
   }
@@ -663,8 +908,9 @@ function handleState(r){
 
 async function connectVoice(iceServers){
   const audio = document.getElementById("botaudio");
-  // Let it ring a few times first.
-  await sleep((1 + Math.floor(Math.random() * 3)) * 2000);
+  // Let it ring a few times first (or, face to face, a moment to walk over).
+  if (CALL.camAsked) camStart().then(ok => { if (ok) attachSelfView(); else CALL.camNote = "Camera tracking didn't start, so this one is voice only."; });
+  await sleep(CALL.net ? 700 : (1 + Math.floor(Math.random() * 3)) * 2000);
   if (CALL.ended) return;
   let mic;
   try {
@@ -679,7 +925,19 @@ async function connectVoice(iceServers){
     audio.srcObject = stream;
     // Shape the prospect's voice like a real phone line (narrow band + light compression).
     // Chrome only feeds a remote stream to Web Audio while an element is playing it, so the element stays attached but muted.
-    try {
+    if (CALL.net) try {
+      // Face to face: full-range voice, a little room tone, and a level meter that drives the mouth.
+      const ctx = tones().ctx;
+      const src = ctx.createMediaStreamSource(stream);
+      const g = ctx.createGain(); g.gain.value = 1.15;
+      const an = ctx.createAnalyser(); an.fftSize = 512;
+      src.connect(an); an.connect(g); g.connect(ctx.destination);
+      CALL.voiceChain = [src, g, an];
+      audio.muted = true;
+      if (!CALL.room) startRoom(ctx);
+      watchMouth(an);
+    } catch(e){ audio.muted = false; }
+    else try {
       const ctx = tones().ctx;
       const src = ctx.createMediaStreamSource(stream);
       const hp = ctx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 300;
@@ -713,10 +971,10 @@ async function connectVoice(iceServers){
     if (!m || m.label !== "rtvi-ai") return;
     const d = m.data || {};
     switch (m.type){
-      case "bot-started-speaking": if (!CALL.t0) pickedUp(); wave("on"); break;
-      case "bot-stopped-speaking": wave(""); break;
-      case "user-started-speaking": wave("me"); break;
-      case "user-stopped-speaking": wave(""); break;
+      case "bot-started-speaking": if (!CALL.t0) pickedUp(); CALL.botSpeaking = true; wave("on"); break;
+      case "bot-stopped-speaking": CALL.botSpeaking = false; wave(""); break;
+      case "user-started-speaking": wave("me"); if (!CALL.repSince) CALL.repSince = Date.now(); break;
+      case "user-stopped-speaking": wave(""); CALL.repSince = null; updateGuide(); break;
       case "user-transcription": if (d.final && d.text) addLine({speaker: "rep", text: d.text}); break;
       case "bot-output": if (d.text && d.aggregated_by === "sentence") addLine({speaker: "them", text: d.text}); break;
       case "server-message": serverMessage(d); break;
@@ -744,6 +1002,8 @@ function hangUpMedia(){
   const audio = document.getElementById("botaudio"); if (audio){ audio.srcObject = null; audio.muted = false; }
   try { (CALL.voiceChain || []).forEach(n => n.disconnect()); } catch(e){}
   CALL.voiceChain = null;
+  try { cancelAnimationFrame(CALL.mouthRaf); (CALL.room || []).forEach((n, i) => { if (i === 0) n.stop(); n.disconnect(); }); } catch(e){}
+  CALL.room = null;
 }
 
 function pickedUp(){
@@ -756,15 +1016,44 @@ function pickedUp(){
 function serverMessage(m){
   const d = (m && (m.data || m)) || {};
   if (d.type === "hangup"){ prospectHungUp(); return; }
+  if (d.type === "mood"){ if (MOODS.includes(d.mood)){ setMood(d.mood); drawFace(); } return; }
   if (d.type === "transfer") renderLive("transfer");
   else if (d.type === "caller"){ CALL.caller = {name: d.name, sub: `${d.title}, ${d.company}`}; renderLive("connected"); }
   else if (d.type === "voicemail") renderLive("voicemail");
 }
 
-function tick(){ const el = document.getElementById("clock"); if (el && CALL.t0) el.textContent = fmtTime((Date.now() - CALL.t0)/1000); }
+function tick(){ const el = document.getElementById("clock"); if (el && CALL.t0) el.textContent = fmtTime((Date.now() - CALL.t0)/1000); if (CALL.net) updateGuide(); }
+
+// ---- networking: the guide under the face (which way the conversation is going, and what to do)
+function setMood(m){
+  const sc = (MOOD_GUIDE[m] || MOOD_GUIDE.neutral)[0];
+  CALL.trend = sc > CALL.lastScore ? 1 : sc < CALL.lastScore ? -1 : 0;
+  CALL.lastScore = sc;
+  CALL.temp = m === "annoyed" ? sc : CALL.temp * 0.4 + sc * 0.6;   // a nerve hit shows at once
+  CALL.mood = m;
+  updateGuide();
+}
+function updateGuide(){
+  const g = document.getElementById("guide"); if (!g) return;
+  const [, read, tip] = MOOD_GUIDE[CALL.mood] || MOOD_GUIDE.neutral;
+  const held = CALL.repSince ? (Date.now() - CALL.repSince) / 1000 : 0;
+  let tipText = tip, cls = CALL.mood === "annoyed" ? "hot" : (CALL.mood === "distracted" || CALL.mood === "closed") ? "warn" : "";
+  const cue = camCue();
+  if (held >= 20){ tipText = `You've had the floor ${Math.floor(held)} seconds. Finish the thought and ask them something.`; cls = "warn"; }
+  else if (cue){ tipText = cue; cls = "warn"; }
+  const arrow = CALL.trend > 0 ? "▲" : CALL.trend < 0 ? "▼" : "▶";
+  const color = CALL.trend > 0 ? "var(--green-t)" : CALL.trend < 0 ? "var(--amber-t)" : "var(--muted)";
+  const pos = Math.max(2, Math.min(98, CALL.temp / 7 * 100));
+  const html = `<div class="read"><span style="color:${color}" aria-hidden="true">${arrow}</span><span>${esc(read)}</span></div>
+    <div class="meter" role="meter" aria-label="How the conversation is going" aria-valuemin="0" aria-valuemax="7" aria-valuenow="${CALL.temp.toFixed(1)}"><i style="left:${pos}%"></i></div>
+    <div class="ends"><span>Cooling</span><span>Warming</span></div>
+    <div class="tip ${cls}">${esc(tipText)}</div>${CALL.camNote ? `<div class="faint" style="font-size:12px">${esc(CALL.camNote)}</div>` : ""}`;
+  if (g.dataset.html !== html){ g.dataset.html = html; g.innerHTML = html; }
+}
 
 function renderLive(state, position){
   CALL.state = state;
+  if (CALL.net) return renderFaceToFace(state, position);
   const name = CALL.caller.name, sub = CALL.caller.sub;
   const status = state === "queued" ? `All lines busy. You're #${position} in line.` :
                  state === "dialing" ? "Dialing…" : state === "ringing" ? "Ringing…" :
@@ -794,6 +1083,36 @@ function renderLive(state, position){
   if (ccb) ccb.onclick = () => { CALL.captions = !CALL.captions; renderLive(CALL.state); };
 }
 
+function renderFaceToFace(state, position){
+  const status = state === "queued" ? `All lines busy. You're #${position} in line.` :
+                 state === "dialing" || state === "ringing" ? (CALL.card.rep_card.approach === "them" ? "They're walking up…" : "Walking over…") : "";
+  const live = state === "connected";
+  callFrame(`
+    <div id="face" class="face-wrap" aria-hidden="true"></div>
+    <div class="row" style="gap:12px;align-items:center"><div class="badge" style="min-width:0"><b>${esc(CALL.caller.name)}</b><span>${esc(CALL.caller.sub)}</span></div>
+      <div id="clock" class="mono" style="font-size:16px;min-width:48px">${CALL.t0 ? fmtTime((Date.now()-CALL.t0)/1000) : ""}</div></div>
+    ${live ? `<div id="guide" class="guide" aria-live="polite"></div>` : ""}
+    ${status ? `<div class="pill" style="font-size:13px" role="status">${esc(status)}</div>` : ""}
+    <div id="caps" class="captions ${CALL.captions ? "" : "hidden"}" aria-live="polite" style="max-height:22vh"></div>
+    ${!CALL.captions ? '<div style="flex:1"></div>' : ""}
+    <div class="row" style="gap:20px;margin-top:4px">
+      ${live ? `<button id="mute" class="round" type="button" aria-label="Mute" aria-pressed="${CALL.muted}">${ICON.mic}</button>` : ""}
+      <button id="hang" class="hang" type="button" aria-label="Walk away" style="width:auto;padding:0 22px;border-radius:38px;font-weight:700;font-size:15px">Walk away</button>
+      ${live ? `<button id="ccb" class="round" type="button" aria-label="Show words" aria-pressed="${CALL.captions}">${ICON.cc}</button>` : ""}
+    </div>`);
+  drawFace();
+  attachSelfView();
+  updateGuide();
+  const caps = document.getElementById("caps");
+  CALL.lines.forEach(l => caps.appendChild(bubble(l)));
+  caps.scrollTop = caps.scrollHeight;
+  document.getElementById("hang").onclick = () => endCall(true);
+  const mute = document.getElementById("mute");
+  if (mute) mute.onclick = () => { CALL.muted = !CALL.muted; mute.setAttribute("aria-pressed", CALL.muted); try { CALL.mic.getAudioTracks().forEach(t => t.enabled = !CALL.muted); } catch(e){} };
+  const ccb = document.getElementById("ccb");
+  if (ccb) ccb.onclick = () => { CALL.captions = !CALL.captions; renderLive(CALL.state); };
+}
+
 function bubble(l){
   const d = document.createElement("div");
   d.className = "bubble " + (l.speaker === "rep" ? "me" : l.speaker === "system" ? "sys" : "them");
@@ -801,17 +1120,18 @@ function bubble(l){
   return d;
 }
 function addLine(l){ CALL.lines.push(l); const caps = document.getElementById("caps"); if (caps){ caps.appendChild(bubble(l)); caps.scrollTop = caps.scrollHeight; } }
-function wave(kind){ const w = document.getElementById("wave"); if (w) w.className = "wave" + (kind ? " " + kind : ""); }
+function wave(kind){ const w = document.getElementById("wave"); if (w) w.className = "wave" + (kind ? " " + kind : ""); if (CALL.net && kind !== "on" && CALL.talking){ CALL.talking = false; drawFace(); } }
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
 
 function prospectHungUp(){
   if (CALL.ended || CALL.hungUp) return;
   CALL.hungUp = true;
-  try { tones().hangup(); } catch(e){}
+  if (!CALL.net) try { tones().hangup(); } catch(e){}
   wave("");
+  const ended = CALL.net ? "Conversation over" : "Call ended";
   const st = document.querySelector("#call [role=status]");
-  if (st) st.textContent = "Call ended";
-  else { const c = document.getElementById("clock"); if (c) c.insertAdjacentHTML("afterend", '<div class="pill" style="font-size:13px" role="status">Call ended</div>'); }
+  if (st) st.textContent = ended;
+  else { const c = document.getElementById("clock"); if (c) c.insertAdjacentHTML("afterend", `<div class="pill" style="font-size:13px" role="status">${ended}</div>`); }
   setTimeout(() => endCall(false), 1400);
 }
 
@@ -819,18 +1139,20 @@ async function endCall(byRep){
   if (CALL.ended) return;
   CALL.ended = true;
   clearInterval(CALL.pingTimer); clearInterval(CALL.clockTimer);
-  try { tones().stopRing(); if (byRep) tones().hangup(); } catch(e){}
+  if (CAM.on){ const p = camPost(true); camStop(); await p; }
+  try { tones().stopRing(); if (byRep && !CALL.net) tones().hangup(); } catch(e){}
   hangUpMedia();
   let r = null;
   try { r = await api(`/api/calls/${CALL.id}/hangup`, {method:"POST"}); } catch(e){}
   const secs = CALL.t0 ? (Date.now() - CALL.t0)/1000 : 0;
   closeCall();
   if (!r || r.status === "abandoned") return renderHome();
-  renderScoring(CALL.id, secs);
+  renderScoring(CALL.id, secs, CALL.net);
 }
 
 function failCall(msg){
   try { tones().stopRing(); } catch(e){}
+  if (CAM.on) camStop();
   CALL.ended = true; clearInterval(CALL.pingTimer); clearInterval(CALL.clockTimer);
   hangUpMedia();
   if (CALL.id) api(`/api/calls/${CALL.id}/hangup`, {method:"POST"}).catch(() => {});
@@ -839,10 +1161,10 @@ function failCall(msg){
 }
 
 // ======================================================================= debrief
-function renderScoring(id, secs){
+function renderScoring(id, secs, net){
   $app.className = "wrap";
   $app.replaceChildren(h(`<div class="stack" style="align-items:center;margin-top:20vh;text-align:center"><div class="spin"></div>
-    <div style="font-size:20px;font-weight:700">Scoring your call</div><div class="muted" id="scoremsg">Call time ${fmtTime(secs)}. This takes about a minute.</div></div>`));
+    <div style="font-size:20px;font-weight:700">Scoring your ${net ? "conversation" : "call"}</div><div class="muted" id="scoremsg">${net ? "Conversation" : "Call"} time ${fmtTime(secs)}. This takes about a minute.</div></div>`));
   let tries = 0;
   const poll = async () => {
     tries++;
@@ -871,11 +1193,11 @@ function md(src){
   return out.join("");
 }
 
-function callBlock(cb){
+function callBlock(cb, net){
   if (!cb || !cb.focus || !cb.focus.what) return "";
   const f = cb.focus, k = cb.keep || {};
   return `<div class="card stack" style="gap:14px;border:1px solid #2E5E45">
-    <div class="eyebrow" style="color:#5BD08A">Your next call block</div>
+    <div class="eyebrow" style="color:#5BD08A">${net ? "Take this to your next event" : "Your next call block"}</div>
     <div class="stack" style="gap:4px"><div style="font-weight:800">1 · Focus on: ${esc(f.what)}</div>
       ${f.say ? `<div style="font-size:15px;line-height:1.5;padding:8px 12px;border-left:3px solid #F2A65A;background:rgba(242,166,90,.08)">Say: “${esc(f.say)}”</div>` : ""}
       ${f.target ? `<div style="font-size:14px;color:var(--text2)">Target: ${esc(f.target)}</div>` : ""}</div>
@@ -888,10 +1210,11 @@ function callBlock(cb){
 async function renderDebrief(id, a){
   a = a || await api(`/api/attempts/${id}`);
   $app.className = "wrap";
-  if (a.status === "grading") return renderScoring(id, a.transcript && a.transcript.length ? a.transcript[a.transcript.length-1].end : 0);
+  const net = isNet(a);
+  if (a.status === "grading") return renderScoring(id, a.transcript && a.transcript.length ? a.transcript[a.transcript.length-1].end : 0, net);
   if (a.status !== "graded"){
     $app.replaceChildren(h(`<div class="stack"><button class="btn ghost small" type="button" id="back" style="align-self:flex-start">Back</button>
-      <div class="err">This call couldn't be scored${a.error ? ": " + esc(a.error) : ""}. Your manager can retry it.</div></div>`));
+      <div class="err">This ${net ? "conversation" : "call"} couldn't be scored${a.error ? ": " + esc(a.error) : ""}. Your manager can retry it.</div></div>`));
     document.getElementById("back").onclick = renderHome; return;
   }
   const r = a.result;
@@ -901,21 +1224,31 @@ async function renderDebrief(id, a){
     <div class="row" style="gap:16px">
       <div style="width:84px;height:84px;border-radius:50%;border:6px solid ${scoreColor(r.overall)};display:flex;align-items:center;justify-content:center;flex-shrink:0" class="mono"><span style="font-size:22px">${r.overall == null ? "–" : r.overall.toFixed(2)}</span></div>
       <div class="stack" style="gap:4px"><div style="font-size:20px;font-weight:800">${esc(r.band || "")}</div>
-        <div style="font-size:14px;color:var(--text2)">${esc(a.rep_card.company)} · ${esc(OUTCOMES[r.outcome] || r.outcome || "")}</div>
+        <div style="font-size:14px;color:var(--text2)">${net ? esc(a.rep_card.target) + " · " : ""}${esc(a.rep_card.company)} · ${esc(OUTCOMES[r.outcome] || r.outcome || "")}</div>
         <div style="font-size:14px;color:var(--text2)">Best possible outcome reached: ${esc(r.reached_best || "–")}</div></div>
     </div>
     ${r.gap || r.strength ? `<div class="card stack" style="gap:12px">
       ${r.gap ? `<div class="stack" style="gap:3px"><div class="eyebrow" style="color:#F2A65A">Biggest gap · ${esc(r.gap.phase)}</div><div style="font-size:16px;line-height:1.45">${esc(r.gap.text || "")}</div></div>` : ""}
       ${r.strength ? `<div class="stack" style="gap:3px"><div class="eyebrow" style="color:#5BD08A">Strongest · ${esc(r.strength.phase)}</div><div style="font-size:16px;line-height:1.45">${esc(r.strength.text || "")}</div></div>` : ""}
     </div>` : ""}
-    ${callBlock(r.call_block)}
+    ${callBlock(r.call_block, net)}
     ${(r.integrity_flags || []).length ? `<div class="row" style="align-items:flex-start;gap:10px;padding:12px 14px;border-radius:12px;background:#3A2A12;border:1px solid #6B4A17">${ICON.warn}
       <div style="font-size:14px;line-height:1.45;color:#F5E3BC"><strong>Integrity flag.</strong> ${esc((r.integrity_flags||[]).map(f => (f.t ? f.t + " " : "") + (f.quote || f.id || "")).join(" · "))}. Your score is capped at 2.5.</div></div>` : ""}
     <div class="card stack" style="gap:11px"><div class="eyebrow">Scores by phase</div>${phaseBars(r.phase_scores)}</div>
+    ${net && r.metrics && r.metrics.eye_contact_pct != null ? `<div class="card stack" style="gap:12px">
+      <div class="eyebrow">On camera</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px">
+        <div><div class="muted" style="font-size:13px">Eye contact</div><div class="mono" style="font-size:20px">${r.metrics.eye_contact_pct}%</div>
+          ${r.metrics.eye_contact_while_they_talk_pct != null ? `<div class="faint" style="font-size:12px">${r.metrics.eye_contact_while_they_talk_pct}% while they talked</div>` : ""}</div>
+        <div><div class="muted" style="font-size:13px">Smiled at the start</div><div style="font-size:18px;font-weight:700">${r.metrics.smiled_in_first_15s ? "Yes" : "No"}</div></div>
+        <div><div class="muted" style="font-size:13px">Nods while they talked</div><div class="mono" style="font-size:20px">${r.metrics.nods_while_they_talk ?? "–"}</div></div>
+        <div><div class="muted" style="font-size:13px">Steady</div><div class="mono" style="font-size:20px">${r.metrics.steady_pct ?? "–"}%</div></div>
+      </div>
+      <div class="faint" style="font-size:12px">Measured in your browser. Nothing was recorded. Not counted in your score yet.</div></div>` : ""}
     <div class="md">${md(r.debrief)}</div>
     <details class="card"><summary style="cursor:pointer;font-weight:700">Transcript</summary>
-      <div class="stack" style="gap:8px;margin-top:12px">${(a.transcript||[]).map(t => `<div style="font-size:14px;line-height:1.45"><span class="mono faint">${fmtTime(t.start)}</span> <strong>${esc(t.speaker === "rep" ? "You" : t.speaker === "dm" ? "Prospect" : t.speaker === "gatekeeper" ? "Front desk" : "Voicemail")}${t.interrupted ? " (you cut in)" : t.cut_in ? " (cut you off)" : ""}:</strong> ${esc(t.text)}</div>`).join("")}</div></details>
-    ${a.mine !== false && parseRoute().page !== "admin" ? `<button class="btn" type="button" id="next">Next dial</button>` : ""}
+      <div class="stack" style="gap:8px;margin-top:12px">${(a.transcript||[]).map(t => `<div style="font-size:14px;line-height:1.45"><span class="mono faint">${fmtTime(t.start)}</span> <strong>${esc(t.speaker === "rep" ? "You" : t.speaker === "dm" ? (net ? (a.rep_card.target || "Them").split(" ")[0] : "Prospect") : t.speaker === "gatekeeper" ? "Front desk" : "Voicemail")}${t.interrupted ? " (you cut in)" : t.cut_in ? " (cut you off)" : ""}:</strong> ${esc(t.text)}</div>`).join("")}</div></details>
+    ${a.mine !== false && parseRoute().page !== "admin" ? `<button class="btn" type="button" id="next">${net ? "Next conversation" : "Next dial"}</button>` : ""}
   </div>`));
   document.getElementById("back").onclick = renderHome;
   const next = document.getElementById("next");
