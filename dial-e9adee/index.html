@@ -45,7 +45,7 @@ label{font-size:13px;font-weight:600;color:var(--text2);display:block;margin-bot
 .muted{color:var(--muted)} .faint{color:var(--faint)} .mono{font-family:var(--mono)}
 .btn{height:52px;border-radius:14px;border:none;background:var(--green);color:#0E1217;font-size:16px;font-weight:700;padding:0 20px;width:100%}
 .btn.ghost{background:transparent;border:1px solid var(--line2);color:var(--text);font-weight:600}
-.btn.small{height:40px;width:auto;font-size:14px;padding:0 14px;border-radius:10px}
+.btn.small{height:40px;width:auto;font-size:14px;padding:0 14px;border-radius:10px;white-space:nowrap}
 .btn.danger{background:transparent;border:1px solid #6B2B2E;color:var(--red-t)}
 .err{background:var(--red-bg);color:#F5D0D0;border-radius:12px;padding:12px 14px;font-size:14px}
 .note{background:var(--blue-bg);color:#D6E6F5;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.45}
@@ -116,7 +116,6 @@ const store = {
 };
 let TOKEN = store.get("dial_token");
 let ME = null;
-let TAB = store.get("dial_tab") || "practice";
 
 function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function h(html){ const t = document.createElement("template"); t.innerHTML = html.trim(); return t.content; }
@@ -201,31 +200,128 @@ function renderInvite(token){
   };
 }
 
-// ======================================================================= home
+// ======================================================================= routing
+// #/                       home: choose a practice
+// #/p/<practice>/<tab>     a practice: practice | progress | history (always your own calls)
+// #/admin/<practice>/<tab> coaching view of a team for one practice: progress | history
+// #/admin/people           people and teams
+let PRACTICES = null;
+function parseRoute(){
+  const p = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
+  if (p[0] === "p" && p[1]) return {page:"p", practice:p[1], tab:["practice","progress","history"].includes(p[2]) ? p[2] : "practice"};
+  if (p[0] === "admin") return {page:"admin", section:p[1] || "", tab:p[2] === "history" ? "history" : "progress"};
+  return {page:"home"};
+}
+function go(hash){ if (location.hash === hash) renderHome(); else location.hash = hash; }
+window.addEventListener("hashchange", () => {
+  if (!TOKEN || /invite=/.test(location.hash)) return;
+  if (CALL.id && !CALL.ended) return;            // never redraw the page under a live call
+  renderHome();
+});
+async function practiceList(){ PRACTICES = await api("/api/practices"); return PRACTICES; }
+function practiceName(id){ return ((PRACTICES || []).find(p => p.id === id) || {}).name || "Practice"; }
+
+// renderHome draws whatever page the address points at. Everything that used to "go home" still calls it.
 async function renderHome(){
-  if (!ME) ME = await api("/api/me");
-  const tabs = [["practice","Practice"],["progress","Progress"],["history","History"]].concat(ME.role === "admin" ? [["admin", ME.super_admin ? "Teams" : "Team"]] : []);
-  if (!tabs.find(t => t[0] === TAB)) TAB = "practice";
-  $app.className = "wrap" + (TAB === "admin" ? " wide" : "");
+  try {
+    if (!ME) ME = await api("/api/me");
+    const r = parseRoute();
+    if (r.page === "admin"){
+      if (ME.role !== "admin") return go("#/");
+      return await renderAdminPage(r.section, r.tab);
+    }
+    if (r.page === "p") return await renderPracticePage(r.practice, r.tab);
+    return await renderHub();
+  } catch(err){
+    if (err.message === "signed out") return;
+    $app.replaceChildren(h(`<div class="stack"><div class="err">${esc(err.message)}</div><button class="btn ghost small" type="button" id="hb" style="align-self:flex-start">Home</button></div>`));
+    document.getElementById("hb").onclick = () => go("#/");
+  }
+}
+
+// The bar at the top of every signed-in page.
+function pageShell({wide, title, sub, back, extra}){
+  $app.className = "wrap" + (wide ? " wide" : "");
+  const onAdmin = parseRoute().page === "admin";
   $app.replaceChildren(h(`
     <div class="stack">
       <div class="between">
-        <div><div class="eyebrow" style="color:var(--green-t)">Dial Practice</div><div style="font-size:18px;font-weight:700;margin-top:2px">${esc(ME.name)}</div>${ME.team_code || ME.super_admin ? `<div class="faint" style="font-size:12px;margin-top:2px">${ME.super_admin ? "Super admin" : esc(ME.team_code)}</div>` : ""}</div>
-        <button id="out" class="btn ghost small" type="button">Sign out</button>
+        <button id="brand" type="button" style="background:none;border:none;padding:0;text-align:left">
+          <div class="eyebrow" style="color:var(--green-t)">Dial Practice</div>
+          <div style="font-size:15px;font-weight:700;margin-top:2px">${esc(ME.name)}${ME.team_code || ME.super_admin ? `<span class="faint" style="font-size:12px;font-weight:600;white-space:nowrap"> · ${ME.super_admin ? "Super admin" : esc(ME.team_code)}</span>` : ""}</div>
+        </button>
+        <div class="row" style="gap:8px">
+          ${ME.role === "admin" ? `<button id="coach" class="btn ghost small" type="button">${onAdmin ? "My practice" : "Coaching"}</button>` : ""}
+          <button id="out" class="btn ghost small" type="button">Sign out</button>
+        </div>
       </div>
-      <div class="tabs" role="tablist">${tabs.map(([k,l]) => `<button role="tab" data-tab="${k}" aria-selected="${k===TAB}">${l}</button>`).join("")}</div>
+      ${back ? `<button id="back" class="btn ghost small" type="button" style="align-self:flex-start">← ${esc(back.label)}</button>` : ""}
+      ${title ? `<div><h1 style="margin:0;font-size:28px;font-weight:800;line-height:1.15">${esc(title)}</h1>${sub ? `<div class="muted" style="font-size:14px;margin-top:4px">${esc(sub)}</div>` : ""}</div>` : ""}
+      ${extra || ""}
       <div id="pane" class="stack"><div class="row muted"><div class="spin"></div> Loading…</div></div>
     </div>`));
-  document.getElementById("out").onclick = async () => { try { await api("/api/auth/logout", {method:"POST"}); } catch(e){} TOKEN=null; ME=null; store.set("dial_token", null); renderLogin(); };
-  $app.querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { TAB = b.dataset.tab; store.set("dial_tab", TAB); renderHome(); });
-  const pane = document.getElementById("pane");
-  try { await ({practice:paneTabPractice, progress:paneProgress, history:paneHistory, admin:paneAdmin})[TAB](pane); }
+  document.getElementById("brand").onclick = () => go("#/");
+  document.getElementById("out").onclick = async () => { try { await api("/api/auth/logout", {method:"POST"}); } catch(e){} TOKEN=null; ME=null; PRACTICES=null; store.set("dial_token", null); history.replaceState(null, "", location.pathname); renderLogin(); };
+  const coach = document.getElementById("coach");
+  if (coach) coach.onclick = () => go(onAdmin ? "#/" : "#/admin");
+  if (back) document.getElementById("back").onclick = () => go(back.hash);
+  return document.getElementById("pane");
+}
+function tabBar(tabs, current, hashFor){
+  const el = h(`<div class="tabs" role="tablist">${tabs.map(([k,l,off]) => `<button role="tab" data-t="${k}" aria-selected="${k===current}"${off ? " disabled" : ""}>${esc(l)}</button>`).join("")}</div>`);
+  el.querySelectorAll("[data-t]").forEach(b => b.onclick = () => go(hashFor(b.dataset.t)));
+  return el;
+}
+async function fill(pane, fn){
+  try { await fn(); }
   catch(err){ if (err.message !== "signed out") pane.replaceChildren(h(`<div class="err">${esc(err.message)}</div>`)); }
 }
 
+// ======================================================================= home: choose a practice
+async function renderHub(){
+  const pane = pageShell({title: "Choose your practice"});
+  await fill(pane, async () => {
+    const list = await practiceList();
+    const lastId = store.get("dial_last_practice");
+    const last = list.find(p => p.id === lastId && p.available);
+    const card = p => {
+      const trend = p.trend == null ? "" : p.trend > 0 ? ` ▲ ${p.trend.toFixed(2)}` : p.trend < 0 ? ` ▼ ${Math.abs(p.trend).toFixed(2)}` : " flat";
+      const stats = !p.available ? `<span class="pill" style="align-self:flex-start">Coming soon</span>` :
+        p.graded_calls ? `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:4px">
+            <div><div class="eyebrow">Level</div><div style="font-weight:800;margin-top:3px">${esc(p.level)}</div></div>
+            <div><div class="eyebrow">Last 5</div><div class="mono" style="margin-top:3px;color:${scoreColor(p.last5_avg)}">${p.last5_avg ?? "–"}<span class="muted" style="font-size:12px">${trend}</span></div></div>
+            <div><div class="eyebrow">Scored</div><div class="mono" style="margin-top:3px">${p.graded_calls}</div></div></div>
+          ${p.focus ? `<div style="font-size:14px;color:var(--text2)">Focus: <strong>${esc(p.focus)}</strong></div>` : ""}
+          ${p.last ? `<div class="faint" style="font-size:13px">Last session ${esc(fmtDate(p.last.date))}</div>` : ""}`
+        : `<div class="muted" style="font-size:14px">No scored sessions yet. Your level and focus skill build from here.</div>`;
+      return `<button type="button" class="card stack" data-p="${p.id}" ${p.available ? "" : "disabled"} style="gap:10px;text-align:left;width:100%;${p.id === (last && last.id) ? "border-color:#2E5E45;" : ""}">
+        <div class="between"><div style="font-size:20px;font-weight:800">${esc(p.name)}</div>${p.available ? `<span style="color:var(--green-t);font-weight:700">Open →</span>` : ""}</div>
+        <div class="muted" style="font-size:14px;line-height:1.45">${esc(p.blurb)}</div>
+        ${stats}</button>`;
+    };
+    pane.replaceChildren(h(`
+      ${last ? `<button id="resume" class="btn" type="button">Continue ${esc(last.name)}</button>` : ""}
+      ${list.map(card).join("")}`));
+    const resume = document.getElementById("resume");
+    if (resume) resume.onclick = () => go(`#/p/${last.id}/practice`);
+    pane.querySelectorAll("[data-p]").forEach(b => b.onclick = () => go(`#/p/${b.dataset.p}/practice`));
+  });
+}
+
+// ======================================================================= a practice: your own calls only
+async function renderPracticePage(practice, tab){
+  if (!PRACTICES) await practiceList();
+  const p = PRACTICES.find(x => x.id === practice);
+  if (!p || !p.available) return go("#/");
+  store.set("dial_last_practice", practice);
+  const pane = pageShell({title: p.name, back: {label: "All practices", hash: "#/"}});
+  pane.before(tabBar([["practice","Practice"],["progress","Progress"],["history","History"]], tab, t => `#/p/${practice}/${t}`));
+  await fill(pane, () => ({practice:paneTabPractice, progress:paneProgress, history:paneHistory})[tab](pane, practice));
+}
+
 // ----------------------------------------------------------------------- practice tab
-async function paneTabPractice(pane){
-  const [card, lines, prog] = await Promise.all([api("/api/calls", {body:{mode:"voice"}}), api("/api/lines"), api("/api/progress")]);
+async function paneTabPractice(pane, practice){
+  const [card, lines, prog] = await Promise.all([api("/api/calls", {body:{mode:"voice", practice}}), api("/api/lines"), api("/api/progress?practice=" + encodeURIComponent(practice))]);
   const free = Math.max(0, lines.total - lines.busy);
   const rc = card.rep_card;
   pane.replaceChildren(h(`
@@ -252,7 +348,7 @@ async function paneTabPractice(pane){
   document.getElementById("dial").onclick = () => startCall(card);
 }
 
-// ----------------------------------------------------------------------- progress tab
+// ----------------------------------------------------------------------- progress
 function sparkline(series, emptyText, label){
   if (series.length < 2) return `<p class="muted" style="font-size:14px;margin:0">${esc(emptyText || "Your trend line appears after two scored calls.")}</p>`;
   const W = 440, H = 120, P = 10, n = series.length;
@@ -268,68 +364,14 @@ function sparkline(series, emptyText, label){
 }
 function phaseBars(obj){
   const e = Object.entries(obj || {});
-  if (!e.length) return `<p class="muted" style="font-size:14px;margin:0">Scores by phase appear after your first scored call.</p>`;
+  if (!e.length) return `<p class="muted" style="font-size:14px;margin:0">Scores by phase appear after the first scored call.</p>`;
   return e.map(([k,v]) => `<div class="row" style="gap:12px"><div style="width:96px;font-size:13px;color:var(--text2)">${esc(k)}</div>
     <div class="bar"><i style="width:${(v||0)*20}%;background:${scoreColor(v)}"></i></div>
     <div class="mono" style="width:30px;text-align:right;font-size:13px">${v==null?"–":(+v).toFixed(1)}</div></div>`).join("");
 }
-// Admins: Progress and History default to the team view. "Mine" shows their own practice calls.
-async function adminScope(pane, render){
-  const view = store.get("dial_view") || "team";
-  const SUPER = !!ME.super_admin;
-  let teams = [], sel = String(ME.team_id || "all");
-  if (SUPER){
-    teams = await api("/api/admin/teams");
-    sel = store.get("dial_team") || sel;
-    if (sel !== "all" && !teams.find(t => String(t.id) === sel)) sel = "all";
-  }
-  const bar = h(`<div class="row" style="gap:10px;flex-wrap:wrap;align-items:center">
-    <div class="tabs" role="tablist" style="margin:0">
-      <button role="tab" data-view="team" aria-selected="${view==="team"}">${SUPER ? "Team" : esc(ME.team_code || "Team")}</button>
-      <button role="tab" data-view="mine" aria-selected="${view==="mine"}">Mine</button></div>
-    ${SUPER && view==="team" ? `<select id="pteam" aria-label="Team" style="max-width:260px"><option value="all"${sel==="all"?" selected":""}>All teams</option>${teams.map(t => `<option value="${t.id}"${String(t.id)===sel?" selected":""}>${esc(t.code)}</option>`).join("")}</select>` : ""}
-  </div>`);
-  const body = document.createElement("div"); body.className = "stack";
-  pane.replaceChildren(bar, body);
-  pane.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { store.set("dial_view", b.dataset.view); renderHome(); });
-  const ps = document.getElementById("pteam"); if (ps) ps.onchange = e => { store.set("dial_team", e.target.value); renderHome(); };
-  await render(body, view, SUPER ? `?team=${encodeURIComponent(sel)}` : "");
-}
-
-async function paneTeamProgress(pane, q){
-  const p = await api("/api/admin/team-progress" + q);
-  const trend = p.trend == null ? "" : (p.trend > 0 ? `▲ ${p.trend.toFixed(2)}` : p.trend < 0 ? `▼ ${Math.abs(p.trend).toFixed(2)}` : "flat");
-  pane.replaceChildren(h(`
-    <div class="card" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
-      <div><div class="eyebrow">Reps practicing</div><div class="mono" style="font-size:22px;margin-top:4px">${p.reps_practicing}<span style="font-size:13px;color:var(--muted)"> of ${p.reps}</span></div></div>
-      <div><div class="eyebrow">Team last 5 average</div><div class="mono" style="font-size:22px;margin-top:4px">${p.last5_avg ?? "–"} <span style="font-size:13px;color:var(--muted)">${trend}</span></div></div>
-      <div><div class="eyebrow">Scored calls</div><div class="mono" style="font-size:22px;margin-top:4px">${p.graded_calls}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_total} tries</span></div></div>
-      <div><div class="eyebrow">Meetings per conversation</div><div class="mono" style="font-size:22px;margin-top:4px">${p.booked_per_dm_conversation == null ? "–" : Math.round(p.booked_per_dm_conversation*100)+"%"}</div></div>
-    </div>
-    ${p.team_focus ? `<div class="card stack" style="gap:8px;background:var(--blue-bg);border-color:#27405A">
-      <div class="eyebrow" style="color:var(--blue-t)">Most common focus skill</div>
-      <div style="font-size:18px;font-weight:700">${esc(p.team_focus.skill)}</div>
-      <div class="muted" style="font-size:14px">The focus skill for ${p.team_focus.reps} of ${p.reps_practicing} reps practicing</div></div>` : ""}
-    <div class="card stack" style="gap:10px"><div class="eyebrow">Team average by day</div>${sparkline(p.series, "The team trend appears after scored calls on two different days.", "Team average score for each day with scored calls")}</div>
-    <div class="card stack" style="gap:11px"><div class="eyebrow">Team average by phase</div>${phaseBars(p.phase_avg)}</div>
-    <div class="card"><div class="eyebrow" style="margin-bottom:8px">By rep</div><div class="scroll-x"><table>
-      <thead><tr><th>Rep</th>${p.team === "All teams" ? "<th>Team</th>" : ""}<th>Scored</th><th>Last 5</th><th>Trend</th><th>Focus</th></tr></thead>
-      <tbody>${p.rep_rows.map(r => `<tr><td style="font-weight:700">${esc(r.name)}${r.status==="disabled" ? ` <span class="faint" style="font-size:12px">disabled</span>` : ""}</td>
-        ${p.team === "All teams" ? `<td class="faint" style="font-size:13px">${esc(r.team_code || "")}</td>` : ""}
-        <td class="mono">${r.graded_calls}</td><td class="mono" style="color:${scoreColor(r.last5_avg)}">${r.last5_avg ?? "–"}</td>
-        <td class="mono">${r.trend == null ? "–" : (r.trend > 0 ? "+" : "") + r.trend.toFixed(2)}</td>
-        <td>${esc(r.focus || "–")}${r.stuck ? ` <span class="chip miss">stuck</span>` : ""}</td></tr>`).join("") || `<tr><td colspan="6" class="muted">No reps on this team yet.</td></tr>`}</tbody></table></div></div>`));
-  return p;
-}
-
-async function paneProgress(pane, userId){
-  if (!userId && ME.role === "admin" && !pane.dataset.inner){
-    return adminScope(pane, async (body, view, q) => {
-      if (view === "team") return paneTeamProgress(body, q);
-      body.dataset.inner = "1"; return paneProgress(body);
-    });
-  }
-  const p = await api(userId ? `/api/admin/users/${userId}/progress` : "/api/progress");
+async function paneProgress(pane, practice, userId){
+  const qp = "?practice=" + encodeURIComponent(practice);
+  const p = await api(userId ? `/api/admin/users/${userId}/progress${qp}` : "/api/progress" + qp);
   const trend = p.trend == null ? "" : (p.trend > 0 ? `▲ ${p.trend.toFixed(2)}` : p.trend < 0 ? `▼ ${Math.abs(p.trend).toFixed(2)}` : "flat");
   pane.replaceChildren(h(`
     <div class="card" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
@@ -343,13 +385,13 @@ async function paneProgress(pane, userId){
       <div style="font-size:18px;font-weight:700">${esc(p.focus.skill)}</div>
       <div class="muted" style="font-size:14px">Weakest part: ${esc(p.focus.detail)}</div>
       <div style="font-size:14px;line-height:1.5"><strong>Drill:</strong> ${esc(p.focus.drill)}</div></div>`
-      : `<div class="note">Your focus skill is picked after three scored calls.</div>`}
-    <div class="card stack" style="gap:10px"><div class="eyebrow">Overall score by call</div>${sparkline(p.series)}</div>
+      : `<div class="note">${userId ? "A focus skill is" : "Your focus skill is"} picked after three scored calls.</div>`}
+    <div class="card stack" style="gap:10px"><div class="eyebrow">Overall score by call</div>${sparkline(p.series, userId ? "The trend line appears after two scored calls." : "")}</div>
     <div class="card stack" style="gap:11px"><div class="eyebrow">Recent average by phase</div>${phaseBars(p.phase_avg)}</div>`));
   return p;
 }
 
-// ----------------------------------------------------------------------- history tab
+// ----------------------------------------------------------------------- history
 function attemptRows(attempts, admin){
   if (!attempts.length) return `<p class="muted">No calls yet.</p>`;
   return attempts.map(a => `<button class="list-item" type="button" data-attempt="${a.id}" ${a.status==="graded"||a.status==="failed"||a.status==="grading"?"":"disabled"}>
@@ -359,45 +401,124 @@ function attemptRows(attempts, admin){
       <div class="mono" style="font-size:20px;color:${scoreColor(a.overall)}">${a.overall == null ? "–" : a.overall.toFixed(1)}</div>
     </button>`).join("");
 }
-async function paneHistory(pane){
-  if (ME.role === "admin" && !pane.dataset.inner){
-    return adminScope(pane, async (body, view, q) => {
-      if (view === "team"){
-        const p = await api("/api/admin/team-progress" + q);
-        body.replaceChildren(h(`<div>${attemptRows(p.attempts, true)}</div>`));
-        body.querySelectorAll("[data-attempt]").forEach(b => b.onclick = () => renderDebrief(+b.dataset.attempt));
-        return;
-      }
-      body.dataset.inner = "1"; return paneHistory(body);
-    });
-  }
-  const p = await api("/api/progress");
+function wireAttempts(el){ el.querySelectorAll("[data-attempt]").forEach(b => b.onclick = () => renderDebrief(+b.dataset.attempt)); }
+async function paneHistory(pane, practice){
+  const p = await api("/api/progress?practice=" + encodeURIComponent(practice));
   pane.replaceChildren(h(`<div>${attemptRows(p.attempts)}</div>`));
-  pane.querySelectorAll("[data-attempt]").forEach(b => b.onclick = () => renderDebrief(+b.dataset.attempt));
+  wireAttempts(pane);
 }
 
-// ----------------------------------------------------------------------- admin tab
-async function paneAdmin(pane){
+// ======================================================================= coaching (admins)
+// One view per practice (team progress and team history, with rep drill-down), plus People & teams.
+async function adminTeams(){
   const SUPER = !!ME.super_admin;
   const teams = await api("/api/admin/teams");
   let sel = SUPER ? (store.get("dial_team") || String(ME.team_id || "all")) : String(ME.team_id);
   if (SUPER && sel !== "all" && !teams.find(t => String(t.id) === sel)) sel = "all";
-  const q = SUPER ? `?team=${encodeURIComponent(sel)}` : "";
-  const [cap, users, calls] = await Promise.all([api("/api/admin/capacity" + q), api("/api/admin/users" + q), api("/api/admin/calls" + q)]);
+  return {SUPER, teams, sel, q: SUPER ? `team=${encodeURIComponent(sel)}` : "",
+          teamName: SUPER && sel === "all" ? "All teams" : (teams.find(t => String(t.id) === sel) || {}).code || ME.team_code || ""};
+}
+function teamPicker(T){
+  if (!T.SUPER) return `<div class="faint" style="font-size:13px">Showing ${esc(T.teamName)} only.</div>`;
+  return `<div style="max-width:320px"><label for="tsel">Team</label><select id="tsel"><option value="all"${T.sel==="all"?" selected":""}>All teams</option>${T.teams.map(t => `<option value="${t.id}"${String(t.id)===T.sel?" selected":""}>${esc(t.code)} · ${esc(t.name)}</option>`).join("")}</select></div>`;
+}
+function wireTeamPicker(){ const s = document.getElementById("tsel"); if (s) s.onchange = e => { store.set("dial_team", e.target.value); renderHome(); }; }
+
+async function renderAdminPage(section, tab){
+  if (!PRACTICES) await practiceList();
+  const avail = PRACTICES.filter(p => p.available);
+  if (!section || (section !== "people" && !avail.find(p => p.id === section))) return go(`#/admin/${avail[0].id}/progress`);
+  const sections = PRACTICES.map(p => [p.id, p.available ? p.name : p.name + " · soon", !p.available]).concat([["people", "People & teams"]]);
+  const pane = pageShell({wide: true, title: "Coaching", sub: ME.super_admin ? "Every team" : (ME.team_code || "")});
+  pane.before(tabBar(sections, section, s => s === "people" ? "#/admin/people" : `#/admin/${s}/progress`));
+  if (section === "people") return fill(pane, () => panePeople(pane));
+  const sub = tabBar([["progress","Team progress"],["history","Team history"]], tab, t => `#/admin/${section}/${t}`);
+  sub.firstElementChild.style.maxWidth = "420px";
+  pane.before(sub);
+  await fill(pane, async () => {
+    const T = await adminTeams();
+    const top = h(`<div>${teamPicker(T)}</div>`);
+    const body = document.createElement("div"); body.className = "stack";
+    pane.replaceChildren(top, body);
+    wireTeamPicker();
+    if (tab === "history") return paneTeamHistory(body, section, T);
+    return paneTeamProgress(body, section, T);
+  });
+}
+
+async function paneTeamProgress(pane, practice, T){
+  const p = await api(`/api/admin/team-progress?practice=${encodeURIComponent(practice)}${T.q ? "&" + T.q : ""}`);
+  const trend = p.trend == null ? "" : (p.trend > 0 ? `▲ ${p.trend.toFixed(2)}` : p.trend < 0 ? `▼ ${Math.abs(p.trend).toFixed(2)}` : "flat");
+  const ALL = p.team === "All teams";
+  pane.replaceChildren(h(`
+    <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px">
+      <div><div class="eyebrow">Reps practicing</div><div class="mono" style="font-size:22px;margin-top:4px">${p.reps_practicing}<span style="font-size:13px;color:var(--muted)"> of ${p.reps}</span></div></div>
+      <div><div class="eyebrow">Team last 5 average</div><div class="mono" style="font-size:22px;margin-top:4px">${p.last5_avg ?? "–"} <span style="font-size:13px;color:var(--muted)">${trend}</span></div></div>
+      <div><div class="eyebrow">Scored calls</div><div class="mono" style="font-size:22px;margin-top:4px">${p.graded_calls}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_total} tries</span></div></div>
+      <div><div class="eyebrow">Meetings per conversation</div><div class="mono" style="font-size:22px;margin-top:4px">${p.booked_per_dm_conversation == null ? "–" : Math.round(p.booked_per_dm_conversation*100)+"%"}</div></div>
+    </div>
+    ${p.team_focus ? `<div class="card stack" style="gap:8px;background:var(--blue-bg);border-color:#27405A">
+      <div class="eyebrow" style="color:var(--blue-t)">Most common focus skill</div>
+      <div style="font-size:18px;font-weight:700">${esc(p.team_focus.skill)}</div>
+      <div class="muted" style="font-size:14px">The focus skill for ${p.team_focus.reps} of ${p.reps_practicing} reps practicing</div></div>` : ""}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div class="card stack" style="gap:10px"><div class="eyebrow">Team average by day</div>${sparkline(p.series, "The team trend appears after scored calls on two different days.", "Team average score for each day with scored calls")}</div>
+      <div class="card stack" style="gap:11px"><div class="eyebrow">Team average by phase</div>${phaseBars(p.phase_avg)}</div>
+    </div>
+    <div class="card"><div class="eyebrow" style="margin-bottom:8px">By rep · tap a rep for their progress</div><div class="scroll-x"><table>
+      <thead><tr><th>Rep</th>${ALL ? "<th>Team</th>" : ""}<th>Level</th><th>Scored</th><th>Last 5</th><th>Trend</th><th>Focus</th></tr></thead>
+      <tbody>${p.rep_rows.map(r => `<tr data-rep="${r.id}" data-name="${esc(r.name)}" style="cursor:pointer"><td style="font-weight:700;color:var(--green-t)">${esc(r.name)}${r.status==="disabled" ? ` <span class="faint" style="font-size:12px">disabled</span>` : ""}</td>
+        ${ALL ? `<td class="faint" style="font-size:13px">${esc(r.team_code || "")}</td>` : ""}
+        <td>${esc(r.level)}</td><td class="mono">${r.graded_calls}</td><td class="mono" style="color:${scoreColor(r.last5_avg)}">${r.last5_avg ?? "–"}</td>
+        <td class="mono">${r.trend == null ? "–" : (r.trend > 0 ? "+" : "") + r.trend.toFixed(2)}</td>
+        <td>${esc(r.focus || "–")}${r.stuck ? ` <span class="chip miss">stuck</span>` : ""}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">No reps on this team yet.</td></tr>`}</tbody></table></div></div>
+    <div id="upane"></div>`));
+  pane.querySelectorAll("[data-rep]").forEach(tr => tr.onclick = () => repDrill(tr.dataset.rep, tr.dataset.name, practice));
+  return p;
+}
+
+async function repDrill(userId, name, practice){
+  const up = document.getElementById("upane");
+  up.replaceChildren(h(`<div class="between" style="margin-top:8px"><h2 style="margin:0;font-size:22px">${esc(name)} · ${esc(practiceName(practice))}</h2><button class="btn ghost small" type="button" id="closeu">Close</button></div>
+    <div id="uprog" class="stack" style="margin-top:12px"><div class="row muted"><div class="spin"></div> Loading…</div></div><div id="uhist" class="card" style="margin-top:16px"></div>`));
+  document.getElementById("closeu").onclick = () => up.replaceChildren();
+  up.scrollIntoView({behavior:"smooth"});
+  const p = await paneProgress(document.getElementById("uprog"), practice, userId);
+  const uh = document.getElementById("uhist");
+  uh.replaceChildren(h(`<div class="eyebrow">Every attempt</div>${attemptRows(p.attempts)}`));
+  wireAttempts(uh);
+}
+
+async function paneTeamHistory(pane, practice, T){
+  const p = await api(`/api/admin/team-progress?practice=${encodeURIComponent(practice)}${T.q ? "&" + T.q : ""}`);
+  const failed = p.attempts.filter(a => a.status === "failed");
+  pane.replaceChildren(h(`
+    ${T.SUPER && failed.length ? `<div class="card stack" style="gap:8px;border-color:#6B4A17"><div class="eyebrow" style="color:var(--amber-t)">Scoring failed</div>
+      ${failed.map(a => `<div class="between"><div style="font-size:14px">${esc(a.rep)} · ${esc(a.company)} · <span class="faint">${esc(fmtDate(a.date))}</span></div>
+        <button class="btn ghost small" type="button" data-regrade="${a.id}">Retry scoring</button></div>`).join("")}</div>` : ""}
+    <div class="card"><div>${attemptRows(p.attempts, true)}</div></div>`));
+  wireAttempts(pane);
+  pane.querySelectorAll("[data-regrade]").forEach(b => b.onclick = async () => { b.disabled = true; await api(`/api/admin/calls/${b.dataset.regrade}/regrade`, {method:"POST"}); renderHome(); });
+}
+
+// ----------------------------------------------------------------------- people & teams
+async function panePeople(pane){
+  const T = await adminTeams();
+  const {SUPER, teams, sel} = T;
+  const q = T.q ? "?" + T.q : "";
+  const [cap, users] = await Promise.all([api("/api/admin/capacity" + q), api("/api/admin/users" + q)]);
   const ALL = SUPER && sel === "all";
-  const teamOpts = (chosen, withAll) => (withAll ? `<option value="all"${chosen==="all"?" selected":""}>All teams</option>` : "") +
-    teams.map(t => `<option value="${t.id}"${String(t.id)===String(chosen)?" selected":""}>${esc(t.code)} · ${esc(t.name)}</option>`).join("");
-  const teamName = ALL ? "All teams" : (teams.find(t => String(t.id) === sel) || {}).code || ME.team_code || "";
+  const teamOpts = chosen => teams.map(t => `<option value="${t.id}"${String(t.id)===String(chosen)?" selected":""}>${esc(t.code)} · ${esc(t.name)}</option>`).join("");
   pane.replaceChildren(h(`
     ${SUPER ? `<div class="card" style="display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end">
-      <div style="flex:1;min-width:220px"><label for="tsel">Viewing</label><select id="tsel">${teamOpts(sel, true)}</select></div>
+      <div style="flex:1;min-width:220px">${teamPicker(T)}</div>
       <form id="teamf" class="row" style="gap:8px;flex-wrap:wrap;align-items:flex-end">
         <div><label for="tc">New team code</label><input id="tc" placeholder="NSP-TAMPA1" pattern="[A-Za-z0-9-]+" required style="width:150px"></div>
         <div><label for="tn">Team name</label><input id="tn" placeholder="NSP Tampa 1" required style="width:170px"></div>
         <button class="btn ghost small" type="submit" style="height:48px">Add team</button>
       </form>
       <div id="teamout" style="width:100%"></div>
-    </div>` : `<div class="faint" style="font-size:13px">Showing ${esc(teamName)} only.</div>`}
+    </div>` : teamPicker(T)}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
       <div class="card stack" style="gap:12px">
         <div class="eyebrow">Practice lines</div>
@@ -415,39 +536,29 @@ async function paneAdmin(pane){
           <div><label for="in">Name</label><input id="in" required></div>
           <div><label for="ie">Email</label><input id="ie" type="email" required></div>
           <div><label for="ir">Role</label><select id="ir"><option value="rep">Rep</option><option value="admin">Admin</option></select></div>
-          ${SUPER ? `<div><label for="it">Team</label><select id="it">${teamOpts(ALL ? (ME.team_id || teams[0]?.id) : sel, false)}</select></div>` : ""}
+          <div><label for="it">Team</label><select id="it">${teamOpts(ALL ? (ME.team_id || teams[0]?.id) : sel)}</select></div>
           <button class="btn small" type="submit">Create invite link</button>
         </form>
         <div id="invout"></div>
       </div>` : ""}
     </div>
     <div id="linkout"></div>
-    <div class="card"><div class="eyebrow" style="margin-bottom:8px">${esc(teamName) || "Team"}</div><div class="scroll-x"><table>
-      <thead><tr><th>Name</th>${SUPER ? "<th>Team</th>" : ""}<th>Level</th><th>Scored / tries</th><th>Last 5</th><th>Trend</th><th>Focus</th><th>Last sign-in</th><th></th></tr></thead>
+    <div class="card"><div class="eyebrow" style="margin-bottom:8px">${esc(T.teamName) || "Team"} · people</div><div class="scroll-x"><table>
+      <thead><tr><th>Name</th>${SUPER ? "<th>Team</th>" : ""}<th>Role</th><th>Status</th><th>Last sign-in</th><th></th></tr></thead>
       <tbody>${users.map(u => `<tr>
-        <td><div style="font-weight:700">${esc(u.name)}</div><div class="faint" style="font-size:12px">${esc(u.email)}${u.super_admin?" · super admin":u.role==="admin"?" · admin":""}${u.status!=="active"?` · ${esc(u.status)}`:""}</div></td>
+        <td><div style="font-weight:700">${esc(u.name)}</div><div class="faint" style="font-size:12px">${esc(u.email)}</div></td>
         ${SUPER ? `<td><select data-move="${u.id}" aria-label="Team for ${esc(u.name)}" style="min-width:130px">${teams.map(t => `<option value="${t.id}"${t.id===u.team_id?" selected":""}>${esc(t.code)}</option>`).join("")}</select></td>` : ""}
-        <td>${esc(u.level)}</td><td class="mono">${u.graded_calls} / ${u.attempts}</td>
-        <td class="mono" style="color:${scoreColor(u.last5_avg)}">${u.last5_avg ?? "–"}</td>
-        <td class="mono">${u.trend == null ? "–" : (u.trend > 0 ? "+" : "") + u.trend.toFixed(2)}</td>
-        <td>${esc(u.focus || "–")}${u.stuck ? ` <span class="chip miss">stuck</span>` : ""}</td>
+        <td>${u.super_admin ? "Super admin" : u.role === "admin" ? "Admin" : "Rep"}</td>
+        <td>${u.status === "active" ? "Active" : u.status === "invited" ? "Invited" : "Disabled"}</td>
         <td class="faint" style="font-size:13px">${esc(fmtDate(u.last_login_at)) || "never"}</td>
         <td><div class="row" style="gap:6px;justify-content:flex-end">
-          ${u.graded_calls ? `<button class="btn ghost small" type="button" data-view="${u.id}" data-name="${esc(u.name)}">Progress</button>` : ""}
           ${u.status==="active" && u.id!==ME.id ? `<button class="btn danger small" type="button" data-act="disable" data-id="${u.id}">Disable</button>` : ""}
           ${u.status!=="disabled" && u.id!==ME.id ? `<button class="btn ghost small" type="button" data-reset="${u.id}" data-name="${esc(u.name)}">Reset password</button>` : ""}
           ${SUPER && u.status==="disabled" ? `<button class="btn ghost small" type="button" data-act="enable" data-id="${u.id}">Enable</button>` : ""}
           ${SUPER && u.status==="invited" ? `<button class="btn ghost small" type="button" data-reinvite="${u.id}" data-name="${esc(u.name)}" data-email="${esc(u.email)}" data-role="${esc(u.role)}" data-team="${u.team_id ?? ""}">New link</button>` : ""}
-        </div></td></tr>`).join("")}</tbody></table></div></div>
-    <div class="card"><div class="eyebrow" style="margin-bottom:8px">Recent calls</div><div class="scroll-x"><table>
-      <thead><tr><th>When</th><th>Rep</th>${ALL ? "<th>Team</th>" : ""}<th>Status</th><th>Score</th><th>Outcome</th><th></th></tr></thead>
-      <tbody>${calls.slice(0,60).map(c => `<tr><td class="faint" style="font-size:13px">${esc(fmtDate(c.started_at || c.queued_at))}</td><td>${esc(c.name)}</td>${ALL ? `<td class="faint" style="font-size:13px">${esc(c.team_code || "")}</td>` : ""}
-        <td>${esc(STATUS[c.status] || c.status)}${c.error ? `<div class="faint" style="font-size:12px">${esc(c.error)}</div>` : ""}</td>
-        <td class="mono" style="color:${scoreColor(c.overall)}">${c.overall == null ? "–" : c.overall.toFixed(1)}</td><td>${esc(OUTCOMES[c.outcome] || "")}</td>
-        <td>${c.status==="graded" ? `<button class="btn ghost small" type="button" data-attempt="${c.id}">Debrief</button>` : c.status==="failed" && SUPER ? `<button class="btn ghost small" type="button" data-regrade="${c.id}">Retry scoring</button>` : ""}</td></tr>`).join("")}</tbody></table></div></div>
-    <div id="upane"></div>`));
+        </div></td></tr>`).join("") || `<tr><td colspan="6" class="muted">Nobody on this team yet.</td></tr>`}</tbody></table></div></div>`));
+  wireTeamPicker();
   if (SUPER){
-    document.getElementById("tsel").onchange = e => { store.set("dial_team", e.target.value); renderHome(); };
     document.getElementById("teamf").onsubmit = async ev => { ev.preventDefault();
       try { const t = await api("/api/admin/teams", {body:{code:tc.value, name:tn.value}}); store.set("dial_team", String(t.id)); renderHome(); }
       catch(err){ document.getElementById("teamout").replaceChildren(h(`<div class="err">${esc(err.message)}</div>`)); } };
@@ -462,9 +573,9 @@ async function paneAdmin(pane){
       <input readonly value="${esc(r.invite_url)}" id="link" aria-label="Invite link"><button class="btn ghost small" type="button" id="copy">Copy link</button></div>`));
     document.getElementById("copy").onclick = () => { const l = document.getElementById("link"); l.select(); navigator.clipboard?.writeText(l.value); };
   };
-  document.getElementById("invf").onsubmit = async ev => { ev.preventDefault();
-    const it = document.getElementById("it");
-    try { showInvite(await api("/api/admin/invites", {body:{name:document.getElementById("in").value, email:ie.value, role:ir.value, team_id: it ? +it.value : null}})); }
+  const invf = document.getElementById("invf");
+  if (invf) invf.onsubmit = async ev => { ev.preventDefault();
+    try { showInvite(await api("/api/admin/invites", {body:{name:document.getElementById("in").value, email:ie.value, role:ir.value, team_id:+document.getElementById("it").value}})); }
     catch(err){ document.getElementById("invout").replaceChildren(h(`<div class="err">${esc(err.message)}</div>`)); } };
   pane.querySelectorAll("[data-reinvite]").forEach(b => b.onclick = async () => {
     try { showInvite(await api("/api/admin/invites", {body:{name:b.dataset.name, email:b.dataset.email, role:b.dataset.role || "rep", team_id: b.dataset.team ? +b.dataset.team : null}})); }
@@ -476,17 +587,6 @@ async function paneAdmin(pane){
       showInvite({note: `${b.dataset.name}: ${r.note}`, invite_url: r.invite_url}, "linkout");
       document.getElementById("linkout").scrollIntoView({behavior:"smooth", block:"center"}); }
     catch(err){ document.getElementById("linkout").replaceChildren(h(`<div class="err">${esc(err.message)}</div>`)); } });
-  pane.querySelectorAll("[data-attempt]").forEach(b => b.onclick = () => renderDebrief(+b.dataset.attempt));
-  pane.querySelectorAll("[data-regrade]").forEach(b => b.onclick = async () => { await api(`/api/admin/calls/${b.dataset.regrade}/regrade`, {method:"POST"}); renderHome(); });
-  pane.querySelectorAll("[data-view]").forEach(b => b.onclick = async () => {
-    const up = document.getElementById("upane");
-    up.replaceChildren(h(`<div class="between" style="margin-top:8px"><h2 style="margin:0;font-size:22px">${esc(b.dataset.name)}</h2><button class="btn ghost small" type="button" id="closeu">Close</button></div><div id="uprog" class="stack" style="margin-top:12px"></div><div id="uhist" class="card" style="margin-top:16px"></div>`));
-    document.getElementById("closeu").onclick = () => up.replaceChildren();
-    const p = await paneProgress(document.getElementById("uprog"), b.dataset.view);
-    const uh = document.getElementById("uhist"); uh.replaceChildren(h(`<div class="eyebrow">Every attempt</div>${attemptRows(p.attempts)}`));
-    uh.querySelectorAll("[data-attempt]").forEach(x => x.onclick = () => renderDebrief(+x.dataset.attempt));
-    up.scrollIntoView({behavior:"smooth"});
-  });
 }
 
 // ======================================================================= the call
@@ -815,10 +915,11 @@ async function renderDebrief(id, a){
     <div class="md">${md(r.debrief)}</div>
     <details class="card"><summary style="cursor:pointer;font-weight:700">Transcript</summary>
       <div class="stack" style="gap:8px;margin-top:12px">${(a.transcript||[]).map(t => `<div style="font-size:14px;line-height:1.45"><span class="mono faint">${fmtTime(t.start)}</span> <strong>${esc(t.speaker === "rep" ? "You" : t.speaker === "dm" ? "Prospect" : t.speaker === "gatekeeper" ? "Front desk" : "Voicemail")}${t.interrupted ? " (you cut in)" : t.cut_in ? " (cut you off)" : ""}:</strong> ${esc(t.text)}</div>`).join("")}</div></details>
-    <button class="btn" type="button" id="next">Next dial</button>
+    ${a.mine !== false && parseRoute().page !== "admin" ? `<button class="btn" type="button" id="next">Next dial</button>` : ""}
   </div>`));
   document.getElementById("back").onclick = renderHome;
-  document.getElementById("next").onclick = () => { TAB = "practice"; store.set("dial_tab", TAB); renderHome(); };
+  const next = document.getElementById("next");
+  if (next) next.onclick = () => go(`#/p/${a.practice || "cold_call"}/practice`);
   window.scrollTo(0,0);
 }
 
