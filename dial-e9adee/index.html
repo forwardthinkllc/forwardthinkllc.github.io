@@ -415,7 +415,7 @@ async function paneTabNetworking(pane, practice){
   const them = rc.approach === "them";
   pane.replaceChildren(h(`
     <div class="between"><div class="muted" style="font-size:14px">${prog.graded_calls} scored conversation${prog.graded_calls===1?"":"s"} · ${esc(prog.level)}</div>
-      <span class="pill">${lines.available ? `${free} of ${lines.total} line${lines.total===1?"":"s"} free` : "Lines paused"}</span></div>
+      <span class="pill">${lines.available ? `${free} of ${lines.total} practice slot${lines.total===1?"":"s"} free` : "Practice paused"}</span></div>
     ${prog.focus ? `<div class="note"><strong>Your focus: ${esc(prog.focus.skill)}.</strong> Some of your conversations will lean toward it.</div>` : ""}
     <div>
       <div class="eyebrow" style="color:var(--green-t)">Your next conversation</div>
@@ -773,14 +773,16 @@ async function panePeople(pane){
     </div>` : teamPicker(T)}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
       <div class="card stack" style="gap:12px">
-        <div class="eyebrow">Practice lines</div>
-        <div class="kv"><span>Live calls</span><span class="mono">${cap.active_calls} of ${cap.max_concurrent_calls}</span></div>
+        <div class="eyebrow">Practice slots</div>
+        <div class="faint" style="font-size:13px;margin-top:-6px">Shared by every practice and every team.</div>
+        <div class="kv"><span>Live now</span><span class="mono">${cap.active_calls} of ${cap.max_concurrent_calls}</span></div>
         <div class="kv"><span>Waiting</span><span class="mono">${cap.queued}</span></div>
         <div class="kv"><span>Mac</span><span>${cap.mac_ok ? "Healthy" : "Under load: " + esc(cap.mac_reason)}</span></div>
         ${cap.free_memory_gb != null ? `<div class="kv"><span>Free memory · CPU</span><span class="mono">${cap.free_memory_gb} GB · ${Math.round(cap.cpu_percent)}%</span></div>` : ""}
-        ${cap.can_set_capacity ? `<form id="capf" class="row"><div style="flex:1"><label for="capn">Max simultaneous calls (all teams)</label><input id="capn" type="number" min="0" max="50" value="${cap.max_concurrent_calls}"></div>
-          <button class="btn small" style="align-self:flex-end;height:48px" type="submit">Save</button></form>` : `<div class="faint" style="font-size:13px">Lines are shared by every team.</div>`}
-        ${cap.live_now.length ? `<div class="stack" style="gap:6px">${cap.live_now.map(l => `<div class="kv"><span>${esc(l.name)}</span><span>${l.status==="active"?"On a call":"Waiting"}</span></div>`).join("")}</div>` : ""}
+        ${cap.can_set_capacity ? `<form id="capf" class="row"><div style="flex:1"><label for="capn">Max at once (all practices, all teams)</label><input id="capn" type="number" min="0" max="50" value="${cap.max_concurrent_calls}"></div>
+          <button class="btn small" style="align-self:flex-end;height:48px" type="submit">Save</button></form>` : ""}
+        ${cap.live_now.length ? `<div class="stack" style="gap:6px">${cap.live_now.map(l => { const p = (PRACTICES || []).find(x => x.id === l.practice); const nm = p ? practiceShort(p) : "Cold Calls";
+          return `<div class="kv"><span>${esc(l.name)}</span><span>${esc(nm)} · ${l.status==="active" ? (l.practice === "networking" ? "In a conversation" : "On a call") : "Waiting"}</span></div>`; }).join("")}</div>` : `<div class="faint" style="font-size:13px">Nobody is practicing right now.</div>`}
       </div>
       ${SUPER ? `<div class="card stack" style="gap:12px">
         <div class="eyebrow">Invite someone</div>
