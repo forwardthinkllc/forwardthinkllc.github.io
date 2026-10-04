@@ -50,13 +50,14 @@ label{font-size:13px;font-weight:600;color:var(--text2);display:block;margin-bot
 .err{background:var(--red-bg);color:#F5D0D0;border-radius:12px;padding:12px 14px;font-size:14px}
 .note{background:var(--blue-bg);color:#D6E6F5;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.45}
 .tabs{display:flex;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:4px}
-.tabs button{flex:1;height:40px;border:none;border-radius:10px;background:transparent;color:var(--muted);font-weight:700;font-size:14px}
+.tabs{overflow-x:auto;scrollbar-width:none}.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:1 0 auto;padding:0 12px;white-space:nowrap;height:40px;border:none;border-radius:10px;background:transparent;color:var(--muted);font-weight:700;font-size:14px}
 .tabs button[aria-selected="true"]{background:var(--surface2);color:var(--text)}
 .kv{display:flex;justify-content:space-between;gap:12px;font-size:14px}
 .kv > :first-child{color:var(--muted)} .kv > :last-child{font-weight:600;text-align:right}
 .pill{font-size:12px;font-weight:700;padding:5px 10px;border-radius:999px;background:#22303A;color:#CFE3EE;white-space:nowrap}
 .chip{align-self:flex-start;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px}
-.chip.fwd{background:var(--green-bg);color:var(--green-t)} .chip.back{background:var(--red-bg);color:var(--red-t)} .chip.miss{background:var(--amber-bg);color:var(--amber-t)}
+.chip.fwd{background:var(--green-bg);color:var(--green-t)} .chip.back{background:var(--red-bg);color:var(--red-t)} .chip.miss{background:var(--amber-bg);color:var(--amber-t)} .chip.rev{background:var(--green-bg);color:var(--green-t);margin-left:4px} .chip.over{background:var(--blue-bg);color:var(--blue-t)} .chip.on{background:var(--surface2);color:var(--text2)}
 .bar{flex:1;height:8px;border-radius:4px;background:var(--line);overflow:hidden} .bar > i{display:block;height:100%;border-radius:4px}
 .list-item{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 0;border-bottom:1px solid var(--line);background:none;border-left:none;border-right:none;border-top:none;width:100%;text-align:left}
 .seg{display:flex;border:1px solid var(--line2);border-radius:12px;overflow:hidden}
@@ -192,8 +193,8 @@ const MOOD_GUIDE = {
   thinking:   [4.5, "Thinking it over",           "Give them a second before you add anything."],
   neutral:    [4,   "Listening",                  "Ask something about them."],
   skeptical:  [3,   "Not convinced",              "Get specific, or turn it back to them with a question."],
-  distracted: [2,   "Losing interest",            "Keep it short and hand it back with a question about them."],
-  closed:     [1,   "Ready to move on",           "Wrap up warmly. Offer a specific next step only if there's a real reason."],
+  distracted: [2,   "Attention drifting",         "Keep it short. If they glance away or say \"well...\", they may need to go: wrap it up for them."],
+  closed:     [1,   "Ready to move on",           "Let them go in one line: their name, and a specific follow-up only if you earned it."],
   annoyed:    [0,   "You hit a nerve",            "One chance: own it, back off, and change course."],
 };
 const STATUS = {graded:"Scored", grading:"Scoring…", failed:"Scoring failed", abandoned:"Didn't connect", active:"Live", queued:"Waiting"};
@@ -278,6 +279,8 @@ function renderInvite(token){
 // #/p/<practice>/<tab>     a practice: practice | progress | history (always your own calls)
 // #/admin/<practice>/<tab> coaching view of a team for one practice: progress | history
 // #/admin/people           people and teams
+// #/admin/usage            who is practicing below or above the expected range (Coaching lands here)
+// #/admin/reports          training report for a date range (summary + CSV downloads)
 let PRACTICES = null;
 function parseRoute(){
   const p = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
@@ -322,11 +325,11 @@ function pageShell({wide, title, sub, back, extra, brand}){
   $app.replaceChildren(h(`
     <div class="stack">
       <div class="between">
-        <button id="brand" type="button" style="background:none;border:none;padding:0;text-align:left">
+        <button id="brand" type="button" style="background:none;border:none;padding:0;text-align:left;min-width:0">
           <div class="eyebrow" style="color:var(--green-t)">${esc(brand)}</div>
           <div style="font-size:15px;font-weight:700;margin-top:2px">${esc(ME.name)}${ME.team_code || ME.super_admin ? `<span class="faint" style="font-size:12px;font-weight:600;white-space:nowrap"> · ${ME.super_admin ? "Super admin" : esc(ME.team_code)}</span>` : ""}</div>
         </button>
-        <div class="row" style="gap:8px">
+        <div class="row" style="gap:8px;flex-shrink:0">
           ${ME.role === "admin" ? `<button id="coach" class="btn ghost small" type="button">${onAdmin ? "My practice" : "Coaching"}</button>` : ""}
           <button id="out" class="btn ghost small" type="button">Sign out</button>
         </div>
@@ -365,8 +368,8 @@ async function renderHub(){
       const stats = !p.available ? `<span class="pill" style="align-self:flex-start">Coming soon</span>` :
         p.graded_calls ? `<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:4px">
             <div><div class="eyebrow">Level</div><div style="font-weight:800;margin-top:3px">${esc(p.level)}</div></div>
-            <div><div class="eyebrow">Last 5</div><div class="mono" style="margin-top:3px;color:${scoreColor(p.last5_avg)}">${p.last5_avg ?? "–"}<span class="muted" style="font-size:12px">${trend}</span></div></div>
-            <div><div class="eyebrow">Scored</div><div class="mono" style="margin-top:3px">${p.graded_calls}</div></div></div>
+            <div><div class="eyebrow">Last 7 days</div><div class="mono" style="margin-top:3px;color:${scoreColor(p.avg_7d)}">${p.avg_7d ?? "–"}<span class="muted" style="font-size:12px">${trend}</span></div></div>
+            <div><div class="eyebrow">This week</div><div class="mono" style="margin-top:3px">${p.scored_7d}</div></div></div>
           ${p.focus ? `<div style="font-size:14px;color:var(--text2)">Focus: <strong>${esc(p.focus)}</strong></div>` : ""}
           ${p.last ? `<div class="faint" style="font-size:13px">Last session ${esc(fmtDate(p.last.date))}</div>` : ""}`
         : `<div class="muted" style="font-size:14px">No scored sessions yet. Your level and focus skill build from here.</div>`;
@@ -402,7 +405,7 @@ async function paneTabPractice(pane, practice){
   const free = Math.max(0, lines.total - lines.busy);
   const rc = card.rep_card;
   pane.replaceChildren(h(`
-    <div class="between"><div class="muted" style="font-size:14px">${prog.graded_calls} scored call${prog.graded_calls===1?"":"s"} · ${esc(prog.level)}</div>
+    <div class="between"><div class="muted" style="font-size:14px">${prog.scored_7d} scored this week · ${esc(prog.level)}</div>
       <span class="pill">${lines.available ? `${free} of ${lines.total} line${lines.total===1?"":"s"} free` : "Lines paused"}</span></div>
     ${prog.focus ? `<div class="note"><strong>Your focus: ${esc(prog.focus.skill)}.</strong> Some of your calls will lean toward it.</div>` : ""}
     <div>
@@ -433,7 +436,7 @@ async function paneTabNetworking(pane, practice){
   const rc = card.rep_card;
   const them = rc.approach === "them";
   pane.replaceChildren(h(`
-    <div class="between"><div class="muted" style="font-size:14px">${prog.graded_calls} scored conversation${prog.graded_calls===1?"":"s"} · ${esc(prog.level)}</div>
+    <div class="between"><div class="muted" style="font-size:14px">${prog.scored_7d} scored this week · ${esc(prog.level)}</div>
       <span class="pill">${lines.available ? `${free} of ${lines.total} practice slot${lines.total===1?"":"s"} free` : "Practice paused"}</span></div>
     ${prog.focus ? `<div class="note"><strong>Your focus: ${esc(prog.focus.skill)}.</strong> Some of your conversations will lean toward it.</div>` : ""}
     <div>
@@ -647,18 +650,19 @@ async function paneProgress(pane, practice, userId){
   pane.replaceChildren(h(`
     <div class="card" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
       <div><div class="eyebrow">Level</div><div style="font-size:20px;font-weight:800;margin-top:4px">${esc(p.level)}</div></div>
-      <div><div class="eyebrow">Last 5 average</div><div class="mono" style="font-size:22px;margin-top:4px">${p.last5_avg ?? "–"} <span style="font-size:13px;color:var(--muted)">${trend}</span></div></div>
-      <div><div class="eyebrow">Scored ${isNet(practice) ? "conversations" : "calls"}</div><div class="mono" style="font-size:22px;margin-top:4px">${p.graded_calls}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_total} tries</span></div></div>
+      <div><div class="eyebrow">Last 7 days average</div><div class="mono" style="font-size:22px;margin-top:4px">${p.avg_7d ?? "–"} <span style="font-size:13px;color:var(--muted)" title="Change vs the 7 days before">${trend}</span></div></div>
+      <div><div class="eyebrow">Scored this week</div><div class="mono" style="font-size:22px;margin-top:4px">${p.scored_7d}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_7d} tries</span></div></div>
       <div><div class="eyebrow">${isNet(practice) ? "Next steps per conversation" : "Meetings per conversation"}</div><div class="mono" style="font-size:22px;margin-top:4px">${p.booked_per_dm_conversation == null ? "–" : Math.round(p.booked_per_dm_conversation*100)+"%"}</div></div>
     </div>
+    <div class="faint" style="font-size:12px;margin-top:-8px">All numbers cover the last 7 days. Arrows compare with the 7 days before. Level is earned over all sessions.</div>
     ${p.focus ? `<div class="card stack" style="gap:8px;background:var(--blue-bg);border-color:#27405A">
-      <div class="eyebrow" style="color:var(--blue-t)">Focus skill</div>
+      <div class="eyebrow" style="color:var(--blue-t)">Focus skill${p.focus_basis && p.focus_basis !== "7d" ? ` · from your ${esc(p.focus_basis)} sessions` : ""}</div>
       <div style="font-size:18px;font-weight:700">${esc(p.focus.skill)}</div>
       <div class="muted" style="font-size:14px">Weakest part: ${esc(p.focus.detail)}</div>
       <div style="font-size:14px;line-height:1.5"><strong>Drill:</strong> ${esc(p.focus.drill)}</div></div>`
       : `<div class="note">${userId ? "A focus skill is" : "Your focus skill is"} picked after three scored ${isNet(practice) ? "conversations" : "calls"}.</div>`}
-    <div class="card stack" style="gap:10px"><div class="eyebrow">Overall score by ${isNet(practice) ? "conversation" : "call"}</div>${sparkline(p.series, userId ? "The trend line appears after two scored calls." : "")}</div>
-    <div class="card stack" style="gap:11px"><div class="eyebrow">Recent average by phase</div>${phaseBars(p.phase_avg)}</div>`));
+    <div class="card stack" style="gap:10px"><div class="eyebrow">This week, by ${isNet(practice) ? "conversation" : "call"}</div>${sparkline(p.series, "The trend line appears after two scored sessions in the last 7 days.")}</div>
+    <div class="card stack" style="gap:11px"><div class="eyebrow">Last 7 days by phase</div>${Object.keys(p.phase_avg || {}).length ? phaseBars(p.phase_avg) : `<p class="muted" style="font-size:14px;margin:0">No scored sessions in the last 7 days.</p>`}</div>`));
   return p;
 }
 
@@ -668,7 +672,7 @@ function attemptRows(attempts, admin){
   return attempts.map(a => `<button class="list-item" type="button" data-attempt="${a.id}" ${a.status==="graded"||a.status==="failed"||a.status==="grading"?"":"disabled"}>
       <div>${admin && a.rep ? `<div class="eyebrow" style="margin-bottom:2px">${esc(a.rep)}${a.team_code ? ` · ${esc(a.team_code)}` : ""}</div>` : ""}<div style="font-weight:700">${a.who ? esc(a.who) + " · " : ""}${esc(a.company)}</div>
       <div class="muted" style="font-size:13px;margin-top:2px">${esc(fmtDate(a.date))} · ${a.setting ? esc(a.setting) : a.path==="gatekeeper"?"Main line":"Direct"}${a.focus?` · ${esc(a.focus)} focus`:""}</div>
-      <div style="font-size:13px;margin-top:2px;color:var(--text2)">${esc(a.outcome ? OUTCOMES[a.outcome] || a.outcome : STATUS[a.status] || a.status)}</div></div>
+      <div style="font-size:13px;margin-top:2px;color:var(--text2)">${esc(a.outcome ? OUTCOMES[a.outcome] || a.outcome : STATUS[a.status] || a.status)}${a.reviewed ? ` <span class="chip rev">✓ Reviewed</span>` : ""}</div></div>
       <div class="mono" style="font-size:20px;color:${scoreColor(a.overall)}">${a.overall == null ? "–" : a.overall.toFixed(1)}</div>
     </button>`).join("");
 }
@@ -698,11 +702,14 @@ function wireTeamPicker(){ const s = document.getElementById("tsel"); if (s) s.o
 async function renderAdminPage(section, tab){
   if (!PRACTICES) await practiceList();
   const avail = PRACTICES.filter(p => p.available);
-  if (!section || (section !== "people" && !avail.find(p => p.id === section))) return go(`#/admin/${avail[0].id}/progress`);
-  const sections = PRACTICES.map(p => [p.id, p.available ? practiceShort(p) : practiceShort(p) + " · soon", !p.available]).concat([["people", "People & teams"]]);
+  const FLAT = ["usage", "reports", "people"];
+  if (!section || (!FLAT.includes(section) && !avail.find(p => p.id === section))) return go("#/admin/usage");
+  const sections = [["usage", "Usage"]].concat(PRACTICES.map(p => [p.id, p.available ? practiceShort(p) : practiceShort(p) + " · soon", !p.available]), [["reports", "Reports"], ["people", "People & teams"]]);
   const pane = pageShell({wide: true, title: "Coaching", sub: ME.super_admin ? "Every team" : (ME.team_code || "")});
-  pane.before(tabBar(sections, section, s => s === "people" ? "#/admin/people" : `#/admin/${s}/progress`));
+  pane.before(tabBar(sections, section, s => FLAT.includes(s) ? `#/admin/${s}` : `#/admin/${s}/progress`));
+  if (section === "usage") return fill(pane, () => paneUsage(pane));
   if (section === "people") return fill(pane, () => panePeople(pane));
+  if (section === "reports") return fill(pane, () => paneReports(pane));
   const sub = tabBar([["progress","Team progress"],["history","Team history"]], tab, t => `#/admin/${section}/${t}`);
   sub.firstElementChild.style.maxWidth = "420px";
   pane.before(sub);
@@ -723,9 +730,9 @@ async function paneTeamProgress(pane, practice, T){
   const ALL = p.team === "All teams";
   pane.replaceChildren(h(`
     <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px">
-      <div><div class="eyebrow">Reps practicing</div><div class="mono" style="font-size:22px;margin-top:4px">${p.reps_practicing}<span style="font-size:13px;color:var(--muted)"> of ${p.reps}</span></div></div>
-      <div><div class="eyebrow">Team last 5 average</div><div class="mono" style="font-size:22px;margin-top:4px">${p.last5_avg ?? "–"} <span style="font-size:13px;color:var(--muted)">${trend}</span></div></div>
-      <div><div class="eyebrow">Scored ${isNet(practice) ? "conversations" : "calls"}</div><div class="mono" style="font-size:22px;margin-top:4px">${p.graded_calls}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_total} tries</span></div></div>
+      <div><div class="eyebrow">Reps practicing this week</div><div class="mono" style="font-size:22px;margin-top:4px">${p.reps_practicing}<span style="font-size:13px;color:var(--muted)"> of ${p.reps}</span></div></div>
+      <div><div class="eyebrow">Team average, last 7 days</div><div class="mono" style="font-size:22px;margin-top:4px">${p.avg_7d ?? "–"} <span style="font-size:13px;color:var(--muted)">${trend}</span></div></div>
+      <div><div class="eyebrow">Scored this week</div><div class="mono" style="font-size:22px;margin-top:4px">${p.scored_7d}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts_7d} tries</span></div></div>
       <div><div class="eyebrow">${isNet(practice) ? "Next steps per conversation" : "Meetings per conversation"}</div><div class="mono" style="font-size:22px;margin-top:4px">${p.booked_per_dm_conversation == null ? "–" : Math.round(p.booked_per_dm_conversation*100)+"%"}</div></div>
     </div>
     ${p.team_focus ? `<div class="card stack" style="gap:8px;background:var(--blue-bg);border-color:#27405A">
@@ -733,14 +740,14 @@ async function paneTeamProgress(pane, practice, T){
       <div style="font-size:18px;font-weight:700">${esc(p.team_focus.skill)}</div>
       <div class="muted" style="font-size:14px">The focus skill for ${p.team_focus.reps} of ${p.reps_practicing} reps practicing</div></div>` : ""}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
-      <div class="card stack" style="gap:10px"><div class="eyebrow">Team average by day</div>${sparkline(p.series, "The team trend appears after scored calls on two different days.", "Team average score for each day with scored calls")}</div>
-      <div class="card stack" style="gap:11px"><div class="eyebrow">Team average by phase</div>${phaseBars(p.phase_avg)}</div>
+      <div class="card stack" style="gap:10px"><div class="eyebrow">Team average by day, last 7 days</div>${sparkline(p.series, "The team trend appears after scored sessions on two different days this week.", "Team average score for each day with scored calls")}</div>
+      <div class="card stack" style="gap:11px"><div class="eyebrow">Team by phase, last 7 days</div>${phaseBars(p.phase_avg)}</div>
     </div>
     <div class="card"><div class="eyebrow" style="margin-bottom:8px">By rep · tap a rep for their progress</div><div class="scroll-x"><table>
-      <thead><tr><th>Rep</th>${ALL ? "<th>Team</th>" : ""}<th>Level</th><th>Scored</th><th>Last 5</th><th>Trend</th><th>Focus</th></tr></thead>
+      <thead><tr><th>Rep</th>${ALL ? "<th>Team</th>" : ""}<th>Level</th><th>This week</th><th>7-day avg</th><th>vs prior week</th><th>Focus</th></tr></thead>
       <tbody>${p.rep_rows.map(r => `<tr data-rep="${r.id}" data-name="${esc(r.name)}" style="cursor:pointer"><td style="font-weight:700;color:var(--green-t)">${esc(r.name)}${r.status==="disabled" ? ` <span class="faint" style="font-size:12px">disabled</span>` : ""}</td>
         ${ALL ? `<td class="faint" style="font-size:13px">${esc(r.team_code || "")}</td>` : ""}
-        <td>${esc(r.level)}</td><td class="mono">${r.graded_calls}</td><td class="mono" style="color:${scoreColor(r.last5_avg)}">${r.last5_avg ?? "–"}</td>
+        <td>${esc(r.level)}</td><td class="mono">${r.scored_7d}</td><td class="mono" style="color:${scoreColor(r.avg_7d)}">${r.avg_7d ?? "–"}</td>
         <td class="mono">${r.trend == null ? "–" : (r.trend > 0 ? "+" : "") + r.trend.toFixed(2)}</td>
         <td>${esc(r.focus || "–")}${r.stuck ? ` <span class="chip miss">stuck</span>` : ""}</td></tr>`).join("") || `<tr><td colspan="7" class="muted">No reps on this team yet.</td></tr>`}</tbody></table></div></div>
     <div id="upane"></div>`));
@@ -770,6 +777,164 @@ async function paneTeamHistory(pane, practice, T){
     <div class="card"><div>${attemptRows(p.attempts, true)}</div></div>`));
   wireAttempts(pane);
   pane.querySelectorAll("[data-regrade]").forEach(b => b.onclick = async () => { b.disabled = true; await api(`/api/admin/calls/${b.dataset.regrade}/regrade`, {method:"POST"}); renderHome(); });
+}
+
+// ----------------------------------------------------------------------- usage
+// Flags for the manager only. Nothing limits practice and reps never see this.
+const USAGE_LABEL = {under: "Under", over: "Over", on: "On track", approved: "Approved block", new: "Too new to judge"};
+function usageChip(st){ const cls = st === "under" ? "miss" : st === "over" ? "over" : st === "approved" ? "fwd" : "on"; return `<span class="chip ${cls}" style="white-space:nowrap">${USAGE_LABEL[st] || st}</span>`; }
+async function paneUsage(pane){
+  const T = await adminTeams();
+  const u = await api("/api/admin/usage" + (T.q ? "?" + T.q : ""));
+  const B = u.benchmarks, ALL = T.SUPER && T.sel === "all";
+  const day = iso => new Date(iso + "T12:00:00").toLocaleDateString(undefined, {weekday: "short"});
+  const under = u.reps.filter(r => r.flag === "under"), over = u.reps.filter(r => r.flag === "over"), blocks = u.reps.filter(r => r.block);
+  const cell = (n, counted) => { const c = !counted ? "var(--line)" : n < B.cold_call.low ? "var(--amber)" : n > B.cold_call.high ? "#4A8FD0" : "var(--green)";
+    return `<div title="${n}" style="width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;background:${counted ? c : "transparent"};border:1px solid ${c};color:${counted ? "#0B1117" : "var(--faint)"}">${counted ? n : "·"}</div>`; };
+  const plus14 = () => { const d = new Date(); d.setDate(d.getDate() + 13); return isoDay(d); };
+  pane.replaceChildren(h(`
+    <div>${teamPicker(T)}</div>
+    <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px">
+      <div><div class="eyebrow">Under the range</div><div class="mono" style="font-size:22px;margin-top:4px;color:${under.length ? "var(--amber-t)" : "inherit"}">${under.length}<span style="font-size:13px;color:var(--muted)"> of ${u.reps.length}</span></div></div>
+      <div><div class="eyebrow">Over the range</div><div class="mono" style="font-size:22px;margin-top:4px;color:${over.length ? "var(--blue-t)" : "inherit"}">${over.length}</div></div>
+      <div><div class="eyebrow">On approved blocks</div><div class="mono" style="font-size:22px;margin-top:4px">${blocks.length}</div></div>
+      <div><div class="eyebrow">Not reviewed, 7 days</div><div class="mono" style="font-size:22px;margin-top:4px">${u.reps.reduce((a, r) => a + r.unreviewed_7d, 0)}</div></div>
+    </div>
+    <div class="faint" style="font-size:13px">Expected: ${B.cold_call.low}–${B.cold_call.high} cold calls each workday${u.networking_on ? ` and ${B.networking.low}–${B.networking.high} networking conversations a week` : ""}. Only you see these flags. Reps are never limited.</div>
+    <div class="card"><div class="scroll-x"><table>
+      <thead><tr><th>Rep</th>${ALL ? "<th>Team</th>" : ""}<th>Cold calls, last 5 workdays</th><th>Total</th><th>Today</th>${u.networking_on ? "<th>Networking, 7 days</th>" : ""}<th>Not reviewed</th><th>Practice block</th></tr></thead>
+      <tbody>${u.reps.map(r => { const c = r.cold_call, n = r.networking;
+        return `<tr data-urep="${r.id}">
+        <td><div style="font-weight:700">${esc(r.name)}</div><div style="margin-top:4px">${r.flag ? usageChip(r.flag) : r.block ? usageChip("approved") : c.status === "new" ? usageChip("new") : usageChip("on")}</div></td>
+        ${ALL ? `<td class="faint" style="font-size:13px">${esc(r.team_code || "")}</td>` : ""}
+        <td><div class="row" style="gap:4px">${c.days.map(d => `<div style="text-align:center"><div class="faint" style="font-size:10px;margin-bottom:2px">${day(d.date)}</div>${cell(d.n, d.counted)}</div>`).join("")}</div></td>
+        <td><div class="mono">${c.total}<span class="faint" style="font-size:12px"> / ${c.low}–${c.high}</span></div><div style="margin-top:3px">${usageChip(c.status)}</div></td>
+        <td class="mono">${c.today}</td>
+        ${u.networking_on ? `<td>${n ? `<div class="mono">${n.total}<span class="faint" style="font-size:12px"> / ${n.low}–${n.high}</span></div><div style="margin-top:3px">${usageChip(n.status)}</div>` : "–"}</td>` : ""}
+        <td class="mono">${r.unreviewed_7d}</td>
+        <td style="min-width:170px">${r.block
+          ? `<div style="font-size:13px">Through ${esc(new Date(r.block.end + "T12:00:00").toLocaleDateString(undefined, {month: "short", day: "numeric"}))}</div><button class="btn ghost small" type="button" data-endblock="${r.id}" style="margin-top:4px;height:32px">End block</button>`
+          : `<button class="btn ghost small" type="button" data-newblock="${r.id}" style="height:32px">Approve block</button>
+             <form data-blockform="${r.id}" class="stack" style="gap:6px;margin-top:6px;display:none">
+               <input type="date" name="s" value="${daysAgo(0)}" aria-label="Block starts"><input type="date" name="e" value="${plus14()}" aria-label="Block ends">
+               <button class="btn small" type="submit" style="height:32px">Approve</button></form>`}</td></tr>`; }).join("") || `<tr><td colspan="8" class="muted">No active reps on this team yet.</td></tr>`}</tbody></table></div></div>
+    <div class="faint" style="font-size:13px;line-height:1.5">A practice block is for a new or struggling rep you've asked to practice more for a while: it turns off the "Over" flag between the dates you pick. Days before a rep joined don't count against them. The squares are amber under ${B.cold_call.low}, green ${B.cold_call.low}–${B.cold_call.high}, blue over ${B.cold_call.high}.</div>
+    <div id="umsg"></div>`));
+  wireTeamPicker();
+  const err = m => document.getElementById("umsg").replaceChildren(h(`<div class="err">${esc(m)}</div>`));
+  pane.querySelectorAll("[data-newblock]").forEach(b => b.onclick = () => { b.style.display = "none"; pane.querySelector(`[data-blockform="${b.dataset.newblock}"]`).style.display = "flex"; });
+  pane.querySelectorAll("[data-blockform]").forEach(f => f.onsubmit = async e => {
+    e.preventDefault();
+    try { await api(`/api/admin/blocks/${f.dataset.blockform}`, {body: {start: f.s.value, end: f.e.value}}); paneUsage(pane); } catch(x){ err(x.message); }
+  });
+  pane.querySelectorAll("[data-endblock]").forEach(b => b.onclick = async () => {
+    try { await api(`/api/admin/blocks/${b.dataset.endblock}`, {method: "DELETE"}); paneUsage(pane); } catch(x){ err(x.message); }
+  });
+}
+
+// ----------------------------------------------------------------------- reports
+// Every rep's scored practice in a date range: an on-screen summary for planning group training, and two CSV downloads.
+function isoDay(d){ return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); }
+function daysAgo(n){ const d = new Date(); d.setDate(d.getDate() - n); return isoDay(d); }
+const RPT = {start: null, end: null, practice: "all", team: null};
+
+async function paneReports(pane){
+  const T = await adminTeams();
+  if (!RPT.start){ RPT.end = daysAgo(0); RPT.start = daysAgo(29); }
+  if (RPT.team == null) RPT.team = T.sel;
+  const avail = (PRACTICES || []).filter(p => p.available);
+  pane.replaceChildren(h(`
+    <div class="card stack" style="gap:14px">
+      <div><div class="eyebrow">Training report</div>
+        <div class="muted" style="font-size:14px;margin-top:4px">Pick the dates. You get every scored practice session from your reps in that window, plus where the group is weakest, so you can plan training for everyone.</div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;align-items:end">
+        <div><label for="rs">From</label><input id="rs" type="date" value="${RPT.start}" max="${daysAgo(0)}"></div>
+        <div><label for="re">Through</label><input id="re" type="date" value="${RPT.end}" max="${daysAgo(0)}"></div>
+        <div><label for="rp">Practice</label><select id="rp"><option value="all">All practices</option>${avail.map(p => `<option value="${p.id}"${RPT.practice===p.id?" selected":""}>${esc(p.name)}</option>`).join("")}</select></div>
+        ${T.SUPER ? `<div><label for="rt">Team</label><select id="rt"><option value="all"${RPT.team==="all"?" selected":""}>All teams</option>${T.teams.map(t => `<option value="${t.id}"${String(t.id)===RPT.team?" selected":""}>${esc(t.code)}</option>`).join("")}</select></div>` : ""}
+      </div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <span class="faint" style="font-size:13px">Quick pick:</span>
+        ${[[7,"Last 7 days"],[30,"Last 30 days"],[90,"Last 90 days"]].map(([n,l]) => `<button class="btn ghost small" type="button" data-qd="${n}">${l}</button>`).join("")}
+      </div>
+      <div class="row" style="gap:10px;flex-wrap:wrap">
+        <button class="btn small" type="button" id="rshow">Show summary</button>
+        <button class="btn ghost small" type="button" id="rdlsum">Download summary (CSV)</button>
+        <button class="btn ghost small" type="button" id="rdlses">Download every session (CSV)</button>
+      </div>
+      ${T.SUPER ? "" : `<div class="faint" style="font-size:13px">Covers ${esc(T.teamName)} only.</div>`}
+      <div id="rmsg"></div>
+    </div>
+    <div id="rout" class="stack"></div>`));
+  const $ = id => document.getElementById(id);
+  const read = () => { RPT.start = $("rs").value; RPT.end = $("re").value; RPT.practice = $("rp").value; if ($("rt")) RPT.team = $("rt").value; };
+  const qs = kind => `start=${RPT.start}&end=${RPT.end}&practice=${encodeURIComponent(RPT.practice)}&kind=${kind}` + (T.SUPER ? `&team=${encodeURIComponent(RPT.team)}` : "");
+  const msg = t => $("rmsg").replaceChildren(t ? h(`<div class="err">${esc(t)}</div>`) : "");
+  const show = async () => {
+    read(); msg("");
+    $("rout").replaceChildren(h(`<div class="row muted"><div class="spin"></div> Building the report…</div>`));
+    try { reportSummary($("rout"), await api("/api/admin/report?" + qs("summary"))); }
+    catch(e){ $("rout").replaceChildren(); if (e.message !== "signed out") msg(e.message); }
+  };
+  const dl = async (kind, btn) => {
+    read(); msg(""); const was = btn.textContent; btn.disabled = true; btn.textContent = "Preparing…";
+    try {
+      const res = await fetch(API + "/api/admin/report?" + qs(kind) + "&format=csv", {headers: {"Authorization": "Bearer " + TOKEN}});
+      if (!res.ok){ let d = null; try { d = await res.json(); } catch(e){} throw new Error((d && d.error) || "Couldn't build the report."); }
+      const url = URL.createObjectURL(await res.blob());
+      const a = document.createElement("a"); a.href = url;
+      a.download = `${kind === "sessions" ? "practice-sessions" : "training-summary"}_${RPT.start}_to_${RPT.end}.csv`;
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
+    } catch(e){ msg(e.message === "Failed to fetch" ? "Can't reach the practice line. It may be offline." : e.message); }
+    finally { btn.disabled = false; btn.textContent = was; }
+  };
+  pane.querySelectorAll("[data-qd]").forEach(b => b.onclick = () => { $("re").value = daysAgo(0); $("rs").value = daysAgo(+b.dataset.qd - 1); show(); });
+  $("rshow").onclick = show;
+  $("rdlsum").onclick = e => dl("summary", e.currentTarget);
+  $("rdlses").onclick = e => dl("sessions", e.currentTarget);
+  show();
+}
+
+function reportSummary(out, r){
+  const fmtD = iso => new Date(iso + "T12:00:00").toLocaleDateString(undefined, {month:"short", day:"numeric", year:"numeric"});
+  const range = `${fmtD(r.start)} – ${fmtD(r.end)} · ${esc(r.team)}`;
+  if (!r.practices.length){ out.replaceChildren(h(`<div class="card muted">No practice sessions from reps between ${range}.</div>`)); return; }
+  const pctBar = v => `<div class="bar" style="min-width:60px"><i style="width:${v}%;background:${v >= 50 ? "var(--amber)" : "#8FA3B5"}"></i></div>`;
+  out.replaceChildren(...r.practices.map(p => h(`
+    <div class="stack" style="gap:14px">
+      <div class="between" style="flex-wrap:wrap;gap:6px"><h2 style="margin:0;font-size:22px">${esc(p.name)}</h2><div class="faint" style="font-size:13px">${range}</div></div>
+      <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px">
+        <div><div class="eyebrow">Scored sessions</div><div class="mono" style="font-size:22px;margin-top:4px">${p.sessions}<span style="font-size:13px;color:var(--muted)"> of ${p.attempts} tries</span></div></div>
+        <div><div class="eyebrow">Reps practicing</div><div class="mono" style="font-size:22px;margin-top:4px">${p.reps_practicing}</div></div>
+        <div><div class="eyebrow">Group average</div><div class="mono" style="font-size:22px;margin-top:4px;color:${scoreColor(p.avg)}">${p.avg ?? "–"}</div></div>
+        <div><div class="eyebrow">Integrity flags</div><div class="mono" style="font-size:22px;margin-top:4px">${p.integrity_flags}</div></div>
+      </div>
+      ${p.skills.length ? `<div class="card stack" style="gap:10px;background:var(--blue-bg);border-color:#27405A">
+        <div class="eyebrow" style="color:var(--blue-t)">Where to aim group training</div>
+        <div class="muted" style="font-size:13px;margin-top:-4px">The five weakest skills across the group, lowest first.</div>
+        <div class="scroll-x"><table><thead><tr><th>Skill</th><th>Phase</th><th>Avg</th><th>Scored under 3</th></tr></thead><tbody>
+        ${p.skills.slice(0,5).map(x => `<tr><td style="font-weight:700">${esc(x.skill)}</td><td class="faint">${esc(x.phase)}</td><td class="mono" style="color:${scoreColor(x.avg)}">${x.avg.toFixed(2)}</td>
+          <td><div class="row" style="gap:8px">${pctBar(x.under_3_pct)}<span class="mono" style="font-size:13px">${x.under_3_pct}%</span></div></td></tr>`).join("")}</tbody></table></div></div>` : ""}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+        <div class="card stack" style="gap:11px"><div class="eyebrow">By phase, weakest first</div>${phaseBars(Object.fromEntries(p.phases.map(x => [x.phase, x.avg])))}</div>
+        <div class="card stack" style="gap:10px"><div class="eyebrow">Biggest gap named in each debrief</div>
+          ${p.gaps.map(g => `<div class="kv"><span>${esc(g.phase)}</span><span class="mono">${g.n} · ${g.pct}%</span></div>`).join("") || `<div class="faint" style="font-size:13px">None yet.</div>`}
+          <div class="eyebrow" style="margin-top:8px">Outcomes</div>
+          ${p.outcomes.map(o => `<div class="kv"><span>${esc(o.outcome)}</span><span class="mono">${o.n} · ${o.pct}%</span></div>`).join("")}</div>
+      </div>
+      ${p.examples.length ? `<div class="card stack" style="gap:12px"><div class="eyebrow">Real lines to train from</div>
+        <div class="muted" style="font-size:13px;margin-top:-6px">What reps actually said on the weakest skills, and the better version from their debriefs.</div>
+        ${p.examples.map(x => `<div class="stack" style="gap:4px;border-top:1px solid var(--line);padding-top:10px">
+          <div class="faint" style="font-size:12px">${esc(x.skill)} · ${esc(x.rep)} · ${esc(x.date)}</div>
+          ${x.you_said ? `<div style="font-size:14px"><span class="faint">Said:</span> “${esc(x.you_said)}”</div>` : ""}
+          ${x.try_instead ? `<div style="font-size:14px;color:var(--green-t)"><span class="faint">Try:</span> “${esc(x.try_instead)}”</div>` : ""}</div>`).join("")}</div>` : ""}
+      ${p.metrics.length ? `<div class="card"><div class="eyebrow" style="margin-bottom:8px">Group habits</div><div class="scroll-x"><table><thead><tr><th>Measure</th><th>Group avg</th><th>Target</th></tr></thead><tbody>
+        ${p.metrics.map(m => `<tr><td>${esc(m.label)}</td><td class="mono">${m.key.endsWith("share") || m.key.endsWith("ratio") ? Math.round(m.avg*100) + "%" : m.key.endsWith("seconds") && m.avg >= 60 ? Math.floor(m.avg/60) + ":" + String(Math.round(m.avg%60)).padStart(2,"0") : m.key.endsWith("seconds") ? Math.round(m.avg) + "s" : m.key.endsWith("pct") ? Math.round(m.avg) + "%" : m.avg}</td><td class="faint" style="font-size:13px">${esc(m.benchmark || "")}</td></tr>`).join("")}</tbody></table></div></div>` : ""}
+      <div class="card"><div class="eyebrow" style="margin-bottom:8px">By rep, lowest average first</div><div class="scroll-x"><table>
+        <thead><tr><th>Rep</th><th>Team</th><th>Scored</th><th>Avg</th><th>Weakest phase</th></tr></thead>
+        <tbody>${p.reps.map(x => `<tr><td style="font-weight:700">${esc(x.rep)}</td><td class="faint">${esc(x.team)}</td><td class="mono">${x.sessions}</td>
+          <td class="mono" style="color:${scoreColor(x.avg)}">${x.avg ?? "–"}</td><td>${esc(x.weakest || "–")}</td></tr>`).join("")}</tbody></table></div></div>
+    </div>`)));
 }
 
 // ----------------------------------------------------------------------- people & teams
@@ -1168,7 +1333,7 @@ function updateGuide(){
 function prepDeck(){
   const p = CALL.prep; if (!p || !p.cards || !p.cards.length) return "";
   const noun = CALL.net ? "conversation" : "call";
-  const sub = p.personal ? `Based on your last ${p.based_on} ${noun}${p.based_on === 1 ? "" : "s"}` : `Tips to start with`;
+  const sub = !p.personal ? "Tips to start with" : p.based_on ? `Based on your last 7 days` : `From your recent ${noun}s`;
   const card = c => {
     const vals = c.values || [], mx = Math.max(...vals, 1);
     const spark = vals.length ? `<div class="pspark" aria-hidden="true">${vals.map((v, i) => `<i class="${i === vals.length - 1 && c.good ? "t" : ""}" style="height:${Math.max(12, Math.round(v / mx * 100))}%"></i>`).join("")}</div>` : "";
@@ -1374,6 +1539,26 @@ function callBlock(cb, net){
   </div>`;
 }
 
+// Leader review mark: the manager marks a scored session reviewed; the rep sees who reviewed it and when.
+function revDate(iso){ return new Date(iso).toLocaleDateString(undefined, {month:"short", day:"numeric"}); }
+function reviewBar(a){
+  const done = a.reviewed;
+  if (a.can_review) return `<div class="card row" style="gap:12px;justify-content:space-between;flex-wrap:wrap;padding:12px 16px;${done ? "border-color:#24533A" : ""}">
+      <div style="font-size:14px;color:${done ? "var(--green-t)" : "var(--text2)"}">${done ? `✓ Reviewed${done.by ? " by " + esc(done.by) : ""} · ${esc(revDate(done.at))}` : "Not reviewed yet. The rep will see it once you mark it."}</div>
+      <button class="btn ${done ? "ghost " : ""}small" type="button" id="revbtn" data-on="${done ? 0 : 1}">${done ? "Undo" : "Mark reviewed"}</button></div>`;
+  if (!done && !a.mine && ME.role === "admin") return `<div class="faint" style="font-size:13px">Not reviewed yet by their team leader.</div>`;
+  return done ? `<div class="row" style="gap:8px;padding:10px 14px;border-radius:12px;background:#12301F;border:1px solid #24533A;font-size:14px;color:var(--green-t)">✓ Reviewed${done.by ? " by " + esc(done.by) : ""} · ${esc(revDate(done.at))}</div>` : "";
+}
+function wireReview(a){
+  const b = document.getElementById("revbtn"); if (!b) return;
+  b.onclick = async () => {
+    b.disabled = true;
+    try { const r = await api(`/api/admin/calls/${a.id}/review`, {body: {reviewed: b.dataset.on === "1"}}); a.reviewed = r.reviewed || null; }
+    catch(e){ b.disabled = false; return; }
+    document.getElementById("revbar").innerHTML = reviewBar(a); wireReview(a);
+  };
+}
+
 async function renderDebrief(id, a){
   a = a || await api(`/api/attempts/${id}`);
   $app.className = "wrap";
@@ -1388,6 +1573,7 @@ async function renderDebrief(id, a){
   const dur = a.transcript && a.transcript.length ? a.transcript[a.transcript.length-1].end : 0;
   $app.replaceChildren(h(`<div class="stack" style="gap:22px">
     <div class="between"><button class="btn ghost small" type="button" id="back">Back</button><div class="mono muted" style="font-size:14px">${esc(fmtDate(a.date))} · ${fmtTime(dur)}</div></div>
+    <div id="revbar">${reviewBar(a)}</div>
     <div class="row" style="gap:16px">
       <div style="width:84px;height:84px;border-radius:50%;border:6px solid ${scoreColor(r.overall)};display:flex;align-items:center;justify-content:center;flex-shrink:0" class="mono"><span style="font-size:22px">${r.overall == null ? "–" : r.overall.toFixed(2)}</span></div>
       <div class="stack" style="gap:4px"><div style="font-size:20px;font-weight:800">${esc(r.band || "")}</div>
@@ -1418,6 +1604,7 @@ async function renderDebrief(id, a){
     ${a.mine !== false && parseRoute().page !== "admin" ? `<button class="btn" type="button" id="next">${net ? "Next conversation" : "Next dial"}</button>` : ""}
   </div>`));
   document.getElementById("back").onclick = renderHome;
+  wireReview(a);
   const next = document.getElementById("next");
   if (next) next.onclick = () => go(`#/p/${a.practice || "cold_call"}/practice`);
   window.scrollTo(0,0);
