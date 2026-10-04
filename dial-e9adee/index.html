@@ -118,8 +118,10 @@ table{width:100%;border-collapse:collapse;font-size:14px} th{text-align:left;col
 /* ---- waiting line: coaching cards */
 .prep{width:100%;max-width:400px;display:flex;flex-direction:column;gap:10px}
 .prep-h{display:flex;justify-content:space-between;align-items:baseline}.prep-h b{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--green-t)}.prep-h span{font-size:12px;color:var(--faint)}
-.prep-deck{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;padding-bottom:2px}.prep-deck::-webkit-scrollbar{display:none}
-.pcard{flex:0 0 86%;scroll-snap-align:start;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:9px;border:1px solid var(--line);text-align:left}
+.prep-deck{position:relative;width:100%;touch-action:pan-y}
+.pcard{position:absolute;left:0;top:0;width:100%;opacity:0;visibility:hidden;transition:opacity .5s ease,visibility .5s;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:9px;border:1px solid var(--line);text-align:left}
+.pcard.on{opacity:1;visibility:visible}
+.prep-deck.instant .pcard,.pdots.instant button{transition:none}
 .pcard .ptag{align-self:flex-start;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px}
 .pcard .ptitle{font-size:19px;font-weight:800;line-height:1.25}
 .pcard .pbody{font-size:14px;line-height:1.5;color:var(--text2)}
@@ -129,7 +131,8 @@ table{width:100%;border-collapse:collapse;font-size:14px} th{text-align:left;col
 .pcard.k-keep{background:linear-gradient(160deg,#15291F,#141A22)}.pcard.k-keep .ptag{background:var(--green-bg);color:var(--green-t);border:1px solid #2E5E45}.pcard.k-keep .psay{color:var(--green-t)}
 .pcard.k-number{background:linear-gradient(160deg,#33280F,#141A22)}.pcard.k-number .ptag{background:var(--amber-bg);color:var(--amber-t);border:1px solid #6B4A17}
 .pcard.k-line,.pcard.k-tip{background:linear-gradient(160deg,#221C33,#141A22)}.pcard.k-line .ptag,.pcard.k-tip .ptag{background:#221C33;color:#C7B5F2;border:1px solid #4A3D73}.pcard.k-line .psay,.pcard.k-tip .psay{color:#C7B5F2}
-.pdots{display:flex;gap:7px;justify-content:center}.pdots i{width:7px;height:7px;border-radius:50%;background:var(--line2);transition:width .2s}.pdots i.on{width:20px;border-radius:4px;background:var(--green-t)}
+.pdots{display:flex;gap:7px;justify-content:center}.pdots button{width:7px;height:7px;padding:0;border:none;border-radius:50%;background:var(--line2);transition:width .2s}.pdots button.on{width:20px;border-radius:4px;background:var(--green-t)}
+@media (prefers-reduced-motion:reduce){.pcard{transition:none}}
 .badge{display:inline-flex;flex-direction:column;align-items:center;padding:8px 16px;border-radius:10px;background:#F4F1EA;color:#1B232C;min-width:180px}
 .badge b{font-size:18px} .badge span{font-size:13px;color:#4A5561}
 .hidden{display:none !important}
@@ -911,7 +914,7 @@ async function startCall(card){
                          : {name: card.rep_card.company, sub: card.rep_card.dialing === "direct line" ? "Direct line" : "Main office"};
   if (CALL.net) preloadFace(card.rep_card.face || "w1");
   CALL.camAsked = CALL.net && camWanted();
-  CALL.prep = null;
+  CALL.prep = null; CALL.prepIdx = 0; CALL.prepNext = null; clearTimeout(CALL.prepTimer);
   api(`/api/prep?practice=${encodeURIComponent(card.practice || "cold_call")}`).then(p => {
     CALL.prep = p; if (CALL.state === "queued" && !CALL.ended) renderLive("queued", CALL.queuePos);
   }).catch(() => {});
@@ -1169,17 +1172,44 @@ function prepDeck(){
   const card = c => {
     const vals = c.values || [], mx = Math.max(...vals, 1);
     const spark = vals.length ? `<div class="pspark" aria-hidden="true">${vals.map((v, i) => `<i class="${i === vals.length - 1 && c.good ? "t" : ""}" style="height:${Math.max(12, Math.round(v / mx * 100))}%"></i>`).join("")}</div>` : "";
-    return `<div class="pcard k-${esc(c.kind)}"><div class="ptag">${esc(c.tag)}</div><div class="ptitle">${esc(c.title)}</div>${spark}
+    return `<div class="pcard k-${esc(c.kind)}" aria-hidden="true"><div class="ptag">${esc(c.tag)}</div><div class="ptitle">${esc(c.title)}</div>${spark}
       ${c.body ? `<div class="pbody">${esc(c.body)}</div>` : ""}${c.say ? `<div class="psay">${esc(/^["“]/.test(c.say) || c.kind !== "keep" && c.kind !== "line" && c.kind !== "tip" ? c.say : "“" + c.say + "”")}</div>` : ""}</div>`;
   };
   return `<div class="prep"><div class="prep-h"><b>${CALL.net ? "Before you walk up" : "While you wait"}</b><span>${esc(sub)}</span></div>
     <div class="prep-deck" id="prepdeck">${p.cards.map(card).join("")}</div>
-    ${p.cards.length > 1 ? `<div class="pdots" id="prepdots">${p.cards.map((_, i) => `<i class="${i ? "" : "on"}"></i>`).join("")}</div>` : ""}</div>`;
+    ${p.cards.length > 1 ? `<div class="pdots" id="prepdots">${p.cards.map((_, i) => `<button type="button" aria-label="Card ${i + 1} of ${p.cards.length}"></button>`).join("")}</div>` : ""}</div>`;
+}
+// One card at a time. Each stays up 15 to 30 seconds depending on how much there is to read, then the next fades in.
+// The position survives the screen redrawing while the rep waits.
+function prepDwell(i){
+  const c = (CALL.prep && CALL.prep.cards[i]) || {};
+  const words = [c.title, c.body, c.say].join(" ").split(/\s+/).length;
+  return Math.min(30000, Math.max(15000, words * 450));
+}
+function showPrep(i, restart){
+  const d = document.getElementById("prepdeck"); if (!d || !CALL.prep) return;
+  const n = CALL.prep.cards.length; i = ((i % n) + n) % n; CALL.prepIdx = i;
+  [...d.children].forEach((c, k) => { c.classList.toggle("on", k === i); c.setAttribute("aria-hidden", k === i ? "false" : "true"); });
+  const dots = document.getElementById("prepdots");
+  if (dots) [...dots.children].forEach((x, k) => x.classList.toggle("on", k === i));
+  if (restart || !CALL.prepNext) CALL.prepNext = Date.now() + prepDwell(i);
+  clearTimeout(CALL.prepTimer);
+  if (n > 1) CALL.prepTimer = setTimeout(() => { CALL.prepNext = null; showPrep(CALL.prepIdx + 1, true); }, Math.max(500, CALL.prepNext - Date.now()));
 }
 function wirePrepDeck(){
-  const d = document.getElementById("prepdeck"), dots = document.getElementById("prepdots"); if (!d || !dots) return;
-  d.onscroll = () => { const w = d.firstElementChild ? d.firstElementChild.offsetWidth + 12 : 1; const i = Math.round(d.scrollLeft / w);
-    [...dots.children].forEach((x, k) => x.classList.toggle("on", k === i)); };
+  const d = document.getElementById("prepdeck"); if (!d){ clearTimeout(CALL.prepTimer); return; }
+  // the deck is as tall as its tallest card, so nothing below it jumps when cards change
+  d.style.height = Math.max(...[...d.children].map(c => c.offsetHeight)) + "px";
+  const dots = document.getElementById("prepdots");
+  if (dots) [...dots.children].forEach((b, k) => b.onclick = () => showPrep(k, true));
+  let x0 = null;
+  d.ontouchstart = e => { x0 = e.touches[0].clientX; };
+  d.ontouchend = e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; x0 = null;
+    if (Math.abs(dx) > 40) showPrep(CALL.prepIdx + (dx < 0 ? 1 : -1), true); };
+  // the screen redraws every few seconds while waiting: put the current card straight back, no fade
+  d.classList.add("instant"); if (dots) dots.classList.add("instant");
+  showPrep(CALL.prepIdx || 0, false);
+  requestAnimationFrame(() => requestAnimationFrame(() => { d.classList.remove("instant"); if (dots) dots.classList.remove("instant"); }));
 }
 
 function renderLive(state, position){
@@ -1275,7 +1305,7 @@ function prospectHungUp(){
 async function endCall(byRep){
   if (CALL.ended) return;
   CALL.ended = true;
-  clearInterval(CALL.pingTimer); clearInterval(CALL.clockTimer);
+  clearInterval(CALL.pingTimer); clearInterval(CALL.clockTimer); clearTimeout(CALL.prepTimer);
   if (CAM.on){ const p = camPost(true); camStop(); await p; }
   try { tones().stopRing(); if (byRep && !CALL.net) tones().hangup(); } catch(e){}
   hangUpMedia();
@@ -1290,7 +1320,7 @@ async function endCall(byRep){
 function failCall(msg){
   try { tones().stopRing(); } catch(e){}
   if (CAM.on) camStop();
-  CALL.ended = true; clearInterval(CALL.pingTimer); clearInterval(CALL.clockTimer);
+  CALL.ended = true; clearInterval(CALL.pingTimer); clearInterval(CALL.clockTimer); clearTimeout(CALL.prepTimer);
   hangUpMedia();
   if (CALL.id) api(`/api/calls/${CALL.id}/hangup`, {method:"POST"}).catch(() => {});
   callFrame(`<div style="flex:1"></div><div class="err" style="max-width:420px">${esc(msg)}</div><button class="btn ghost" style="max-width:420px" type="button" id="back">Back</button><div style="flex:1"></div>`);
