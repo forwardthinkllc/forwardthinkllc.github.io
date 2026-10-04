@@ -828,7 +828,7 @@ async function paneUsage(pane){
     try { await api(`/api/admin/blocks/${f.dataset.blockform}`, {body: {start: f.s.value, end: f.e.value}}); paneUsage(pane); } catch(x){ err(x.message); }
   });
   pane.querySelectorAll("[data-endblock]").forEach(b => b.onclick = async () => {
-    try { await api(`/api/admin/blocks/${b.dataset.endblock}`, {method: "DELETE"}); paneUsage(pane); } catch(x){ err(x.message); }
+    try { await api(`/api/admin/blocks/${b.dataset.endblock}/end`, {method: "POST"}); paneUsage(pane); } catch(x){ err(x.message); }
   });
 }
 
