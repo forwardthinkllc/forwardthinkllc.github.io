@@ -713,7 +713,7 @@ async function paneHistory(pane, practice){
 // so the lock can't be skipped from the browser. Admins are never locked.
 const PROS_API = (window.PROSPECTOR_API || "").trim();
 const GATE_PRACTICE = "cold_call";
-const PROS_TRIGGER = {FIRST_HR:"HR leadership hire", FINANCE_BUILD:"Finance hire", OPS_BUILD:"Operations hire", OTHER:"Leadership hire"};
+const PROS_TRIGGER = {FIRST_HR:"HR leadership hire", FINANCE_BUILD:"Finance hire", OPS_BUILD:"Operations hire", SALES_BUILD:"Sales leadership hire", EXEC_HIRE:"CEO hire", HIRING_PUSH:"Hiring push", FUNDING:"New funding", M_AND_A:"Acquisition", EXEC_MOVE:"New leader", EXPANSION:"Expansion", FORM_D:"Capital raise", GROWTH:"Fast growth", OTHER:"Leadership hire"};
 const PROS_OUTCOMES = ["", "No reply", "Replied", "Meeting", "Not interested"];
 let PROS = null;
 const prosTimers = {};
