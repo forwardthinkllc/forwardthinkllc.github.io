@@ -917,15 +917,11 @@ function prosCard(i, pane, tab){
 
 function prosLiBlock(i){
   const c = prosComment(i.linkedin_angle);
-  if (!c.text && !i.contact_linkedin) return "";
+  if (!c.text || !c.url) return "";
   return `<div class="li stack" style="gap:8px">
-    <div class="between"><div class="eyebrow">LinkedIn comment</div>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener" style="font-size:13px;font-weight:700">Open the post</a>` : ""}</div>
-    ${c.text ? `<textarea data-li>${esc(c.text)}</textarea>` : `<div class="muted" style="font-size:14px">No comment yet.</div>`}
-    <div class="row" style="flex-wrap:wrap;gap:8px">
-      ${c.text ? `<button class="btn small" type="button" data-a="copyli">Copy comment</button>` : ""}
-      ${c.text && c.url ? `<button class="btn ghost small" type="button" data-a="copyopen">Copy and open post</button>` : ""}
-      ${i.contact_linkedin ? `<button class="btn ghost small" type="button" data-a="newli">${c.text ? "Write a new one" : "Write a comment"}</button>` : ""}
-    </div></div>`;
+    <div class="eyebrow">LinkedIn comment</div>
+    <textarea data-li>${esc(c.text)}</textarea>
+    <div class="row"><button class="btn small" type="button" data-a="copyopen">Copy and open post</button></div></div>`;
 }
 
 function prosPanel(slot, kind, save, rerender){
