@@ -736,6 +736,8 @@ function prosToast(msg){
 }
 function wordCount(s){ return String(s || "").trim().split(/\s+/).filter(Boolean).length; }
 function prosOutlook(i){ return "https://outlook.office.com/mail/deeplink/compose?to=" + encodeURIComponent(i.to) + "&subject=" + encodeURIComponent(i.subject) + "&body=" + encodeURIComponent(i.body); }
+function prosLinkify(t){ return esc(t).replace(/https?:\/\/[^\s<>"]+/g, u => { const c = u.replace(/[.,;:)]+$/, ""); return `<a href="${c}" target="_blank" rel="noopener">${c.replace(/^https?:\/\/(www\.)?/, "").slice(0, 70)}</a>` + u.slice(c.length); }); }
+function prosQa(qa){ return String(qa || "").split("; ").filter(x => x && !/^add email/i.test(x)).join("; "); }
 function prosMailto(i){ return "mailto:" + encodeURIComponent(i.to).replace(/%40/g, "@") + "?subject=" + encodeURIComponent(i.subject) + "&body=" + encodeURIComponent(i.body); }
 
 // Home: the Prospector card, with today's lock status.
@@ -827,7 +829,7 @@ function prosCard(i, pane, tab){
     <details><summary class="muted" style="font-size:14px;cursor:pointer">Call opener, LinkedIn angle, sources</summary>
       <div class="stack" style="gap:12px;margin-top:10px">
         <div><div class="eyebrow">Call opener</div><div style="font-size:15px;line-height:1.5;margin-top:4px">${esc(i.call_opener || "None")}</div></div>
-        <div><div class="eyebrow">LinkedIn comment angle</div><div style="font-size:15px;line-height:1.5;margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(i.linkedin_angle || "None")}</div></div>
+        <div><div class="eyebrow">LinkedIn comment angle</div><div style="font-size:15px;line-height:1.5;margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">${i.linkedin_angle ? prosLinkify(i.linkedin_angle) : "None"}</div></div>
         <div><div class="eyebrow">Sources (check before you send)</div>${String(i.sources || "").split("\n").filter(Boolean).map(u => `<div style="font-size:13px;margin-top:4px;overflow-wrap:anywhere"><a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\/(www\.)?/, "").slice(0, 90))}</a></div>`).join("") || `<div class="muted" style="font-size:14px">None</div>`}</div>
       </div></details>
   </div>`).firstElementChild;
@@ -835,25 +837,22 @@ function prosCard(i, pane, tab){
   const slot = el.querySelector("[data-slot]");
   if (archived){
     const disp = i.disposition + (i.disposition_reason ? ": " + i.disposition_reason : "") + (i.disposition_note ? " (" + i.disposition_note + ")" : "");
-    const done = [["step_email", "email"], ["step_call", "call"], ["step_linkedin", "LinkedIn"]].filter(([k]) => i[k] === "Y").map(x => x[1]).join(", ");
+    const done = i.step_email === "Y" ? "Opened in Outlook" : "";
     slot.replaceWith(h(`<div class="stack" style="gap:10px">
-      <div class="muted" style="font-size:14px">${esc(disp)}${done ? " · Steps: " + esc(done) : ""}${mgr && i.owner ? " · " + esc(i.owner) : ""}</div>
+      <div class="muted" style="font-size:14px">${esc(disp)}${done ? " · " + esc(done) : ""}${mgr && i.owner ? " · " + esc(i.owner) : ""}</div>
       <div class="row" style="flex-wrap:wrap">
         ${i.disposition === "Worked" ? `<div style="min-width:220px;max-width:280px"><select data-f="outcome">${PROS_OUTCOMES.map(o => `<option value="${esc(o)}"${o === i.outcome ? " selected" : ""}>${esc(o || "Outcome...")}</option>`).join("")}</select></div>` : ""}
         <button class="btn ghost small" type="button" data-a="restore">Restore</button>
       </div></div>`));
   } else {
     slot.replaceWith(h(`<div class="stack" style="gap:12px">
-      ${i.qa ? `<div class="qa">${ICON.warn}<span>${esc(i.qa)}</span></div>` : ""}
-      <div><label>To</label><input type="email" data-f="to" value="${esc(i.to)}" placeholder="Email from ZoomInfo"></div>
+      ${prosQa(i.qa) ? `<div class="qa">${ICON.warn}<span>${esc(prosQa(i.qa))}</span></div>` : ""}
+      <div><label>To</label><input type="email" data-f="to" value="${esc(i.to)}" placeholder="Optional. Add it here or in Outlook"></div>
       <div><label>Subject</label><input type="text" data-f="subject" value="${esc(i.subject)}"></div>
       <div><label>Email</label><textarea data-f="body">${esc(i.body)}</textarea><div class="faint mono" data-wc style="font-size:12px;text-align:right;margin-top:4px"></div></div>
-      <div class="steps">${[["step_email", "Email sent"], ["step_call", "Called"], ["step_linkedin", "LinkedIn touch"]].map(([k, l]) => `<label class="${i[k] === "Y" ? "done" : ""}"><input type="checkbox" data-step="${k}"${i[k] === "Y" ? " checked" : ""}>${l}</label>`).join("")}</div>
       <div class="row" style="flex-wrap:wrap;gap:8px">
         ${!i.owner ? `<button class="btn small" type="button" data-a="claim">Claim</button>` : ""}
         <button class="btn small${i.owner ? "" : " ghost"}" type="button" data-a="outlook">Open in Outlook</button>
-        <button class="btn ghost small" type="button" data-a="mailto">Outlook desktop</button>
-        <button class="btn ghost small" type="button" data-a="archive">Archive</button>
         <button class="btn danger small" type="button" data-a="notfit">Not a fit</button>
         <button class="btn ghost small" type="button" data-a="owned">Owned by another rep</button>
         ${i.owner === PROS.me.name && !mgr ? `<button class="btn ghost small" type="button" data-a="release">Release</button>` : ""}
@@ -878,17 +877,15 @@ function prosCard(i, pane, tab){
   if (assign) assign.onchange = () => save({assign: assign.value}, () => rerender(assign.value ? "Assigned to " + assign.value : "Moved to the open pool"));
   const oc = q('[data-f="outcome"]');
   if (oc) oc.onchange = () => save({outcome: oc.value}, () => prosToast("Outcome saved"));
-  el.querySelectorAll("[data-step]").forEach(c => c.onchange = () => {
-    c.parentElement.classList.toggle("done", c.checked);
-    save({[c.dataset.step]: c.checked}, () => { if (tab === "pool") rerender(); });
-  });
-  const needEmail = () => { if (!i.to){ prosToast("Add the email address first"); q('[data-f="to"]').focus(); return true; } return false; };
   const on = (a, fn) => { const b = q(`[data-a="${a}"]`); if (b) b.onclick = fn; };
   on("claim", () => save({claim: true}, () => rerender("Added to your queue")));
   on("release", () => save({release: true}, () => rerender("Released to the open pool")));
-  on("outlook", () => { if (needEmail()) return; window.open(prosOutlook(i), "_blank", "noopener"); save({to: i.to, subject: i.subject, body: i.body, opened: true}); });
-  on("mailto", () => { if (needEmail()) return; window.location.href = prosMailto(i); save({to: i.to, subject: i.subject, body: i.body, opened: true}); });
-  on("archive", () => save({archive: true}, () => rerender("Archived")));
+  on("outlook", () => {
+    try { navigator.clipboard.writeText(i.subject + "\n\n" + i.body); } catch (e) {}
+    window.location.href = prosMailto(i);
+    save({to: i.to, subject: i.subject, body: i.body, opened: true, step_email: true, archive: true},
+      () => rerender("Opened in Outlook and marked done. Subject and body are also on your clipboard."));
+  });
   on("restore", () => save({restore: true}, () => rerender("Back in the queue")));
   on("notfit", () => prosPanel(q("[data-panel]"), "notfit", save, rerender));
   on("owned", () => prosPanel(q("[data-panel]"), "owned", save, rerender));
