@@ -15,6 +15,8 @@
   // ---- The only setting to change when you deploy ----
   // Your Mac's Tailscale Funnel address (see deploy/DEPLOY.md). Leave empty to use the same server (local testing).
   window.DIAL_API = "https://automateds-mac-mini.tail5dcb67.ts.net";
+  // Prospector: the Signal Engine sheet's web app address. Leave empty to hide Prospector.
+  window.PROSPECTOR_API = "https://script.google.com/macros/s/AKfycbzxcHKuGth0fhzI_HPYYOV8ner-6WXvP3sFsIYACblO5fegcNHn0R1Eo6hE0AnJN5B29A/exec";
 </script>
 <style>
 :root{
@@ -136,6 +138,20 @@ table{width:100%;border-collapse:collapse;font-size:14px} th{text-align:left;col
 @media (prefers-reduced-motion:reduce){.pcard{transition:none}}
 .badge{display:inline-flex;flex-direction:column;align-items:center;padding:8px 16px;border-radius:10px;background:#F4F1EA;color:#1B232C;min-width:180px}
 .badge b{font-size:18px} .badge span{font-size:13px;color:#4A5561}
+/* ---- prospector */
+textarea{font-family:inherit;font-size:16px;line-height:1.5;color:var(--text);background:var(--surface2);border:1px solid var(--line2);border-radius:12px;padding:12px 14px;width:100%;min-height:210px;resize:vertical;display:block}
+textarea:focus{outline:2px solid var(--green-t);outline-offset:2px}
+.lead input,.lead select{background:var(--surface2)}
+.lead .why{white-space:pre-wrap}
+.steps{display:flex;flex-wrap:wrap;gap:8px}
+.steps label{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;font-weight:600;color:var(--text);background:var(--surface2);border:1px solid var(--line2);border-radius:10px;padding:9px 12px;cursor:pointer}
+.steps input{width:18px;height:18px;margin:0;padding:0;accent-color:var(--green)}
+.steps label.done{border-color:#2E5E45;background:var(--green-bg)}
+.links{display:flex;flex-wrap:wrap;gap:8px}
+.links a,.links span{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid var(--line2);text-decoration:none;color:var(--muted)}
+.links a{color:var(--green-t);border-color:#2E5E45}
+.qa{display:flex;gap:8px;font-size:14px;line-height:1.45;color:#F5E3BC;background:var(--amber-bg);border:1px solid #6B4A17;border-radius:12px;padding:10px 12px}
+.ptoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--line2);color:var(--text);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;z-index:20;max-width:90vw}
 .hidden{display:none !important}
 @media (min-width:720px){.wrap{padding-top:40px}}
 @media (prefers-reduced-motion:reduce){.ring,.wave.on i,.wave.me i,.spin{animation:none}}
@@ -286,6 +302,7 @@ function parseRoute(){
   const p = location.hash.replace(/^#\/?/, "").split("/").filter(Boolean);
   if (p[0] === "p" && p[1]) return {page:"p", practice:p[1], tab:["practice","progress","history"].includes(p[2]) ? p[2] : "practice"};
   if (p[0] === "admin") return {page:"admin", section:p[1] || "", tab:p[2] === "history" ? "history" : "progress"};
+  if (p[0] === "prospector") return {page:"prospector", tab:["mine","pool","archived","all"].includes(p[1]) ? p[1] : "mine"};
   return {page:"home"};
 }
 function go(hash){ if (location.hash === hash) renderHome(); else location.hash = hash; }
@@ -308,6 +325,7 @@ async function renderHome(){
       return await renderAdminPage(r.section, r.tab);
     }
     if (r.page === "p") return await renderPracticePage(r.practice, r.tab);
+    if (r.page === "prospector" && PROS_API) return await renderProspector(r.tab);
     return await renderHub();
   } catch(err){
     if (err.message === "signed out") return;
@@ -383,6 +401,7 @@ async function renderHub(){
       ${list.map(card).join("")}`));
     const resume = document.getElementById("resume");
     if (resume) resume.onclick = () => go(`#/p/${last.id}/practice`);
+    if (PROS_API) prosHubCard(pane);
     pane.querySelectorAll("[data-p]").forEach(b => b.onclick = () => go(`#/p/${b.dataset.p}/practice`));
   });
 }
@@ -683,6 +702,243 @@ async function paneHistory(pane, practice){
   wireAttempts(pane);
 }
 
+
+// ======================================================================= prospector
+// Leads from the Signal Engine sheet. A rep's Prospector opens for the day once they
+// finish one Cold Call Practice run. The sheet checks this itself with this server,
+// so the lock can't be skipped from the browser. Admins are never locked.
+const PROS_API = (window.PROSPECTOR_API || "").trim();
+const GATE_PRACTICE = "cold_call";
+const PROS_TRIGGER = {FIRST_HR:"HR leadership hire", FINANCE_BUILD:"Finance hire", OPS_BUILD:"Operations hire", OTHER:"Leadership hire"};
+const PROS_OUTCOMES = ["", "No reply", "Replied", "Meeting", "Not interested"];
+let PROS = null;
+const prosTimers = {};
+
+async function papi(action, extra){
+  if (!PROS_API) throw new Error("Prospector isn't connected yet.");
+  const res = await fetch(PROS_API, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body: JSON.stringify(Object.assign({t: TOKEN, action}, extra || {}))})
+    .catch(() => { throw new Error("Can't reach Prospector right now. Try again in a minute."); });
+  let d = null; try { d = await res.json(); } catch(e){}
+  if (!d) throw new Error("Prospector didn't answer. Try again in a minute.");
+  if (!d.ok){
+    if (d.code === "auth"){ TOKEN = null; store.set("dial_token", null); renderLogin("Please sign in again."); throw new Error("signed out"); }
+    throw new Error(d.error || "Something went wrong.");
+  }
+  return d;
+}
+
+function prosToast(msg){
+  let t = document.getElementById("ptoast");
+  if (!t){ t = document.createElement("div"); t.id = "ptoast"; t.className = "ptoast"; t.setAttribute("role", "status"); document.body.appendChild(t); }
+  t.textContent = msg; t.classList.remove("hidden");
+  clearTimeout(prosTimers.toast); prosTimers.toast = setTimeout(() => t.classList.add("hidden"), 3200);
+}
+function wordCount(s){ return String(s || "").trim().split(/\s+/).filter(Boolean).length; }
+function prosOutlook(i){ return "https://outlook.office.com/mail/deeplink/compose?to=" + encodeURIComponent(i.to) + "&subject=" + encodeURIComponent(i.subject) + "&body=" + encodeURIComponent(i.body); }
+function prosMailto(i){ return "mailto:" + encodeURIComponent(i.to).replace(/%40/g, "@") + "?subject=" + encodeURIComponent(i.subject) + "&body=" + encodeURIComponent(i.body); }
+
+// Home: the Prospector card, with today's lock status.
+function prosHubCard(pane){
+  const card = h(`<button type="button" class="card stack" id="pros" style="gap:8px;text-align:left;width:100%;border-color:#27405A;background:linear-gradient(160deg,#172230,#141A22)">
+    <div class="between"><div style="font-size:20px;font-weight:800">Prospector</div><span id="prosst" class="pill">Checking</span></div>
+    <div class="muted" style="font-size:14px;line-height:1.45">Today's accounts with a reason to call now, written up and ready to send from Outlook.</div></button>`).firstElementChild;
+  const first = pane.querySelector("[data-p]");
+  first ? pane.insertBefore(card, first) : pane.appendChild(card);
+  card.onclick = () => go("#/prospector");
+  papi("gate").then(d => {
+    const st = document.getElementById("prosst"); if (!st) return;
+    st.textContent = d.gate.open ? "Open" : "Locked: practice first";
+    st.style.background = d.gate.open ? "var(--green-bg)" : "var(--amber-bg)";
+    st.style.color = d.gate.open ? "var(--green-t)" : "var(--amber-t)";
+  }).catch(() => { const st = document.getElementById("prosst"); if (st) st.textContent = "Open"; });
+}
+
+async function renderProspector(tab){
+  if (!PRACTICES) await practiceList();
+  const pane = pageShell({wide: true, brand: "Prospector", back: {label: "All practices", hash: "#/"}});
+  await fill(pane, async () => {
+    const d = await papi("queue");
+    if (d.locked) return prosLocked(pane);
+    PROS = d;
+    prosRender(pane, tab);
+  });
+}
+
+function prosLocked(pane){
+  const name = practiceName(GATE_PRACTICE);
+  pane.replaceChildren(h(`<div class="card stack" style="gap:14px;align-items:flex-start">
+    <span class="chip miss">Locked for today</span>
+    <div style="font-size:22px;font-weight:800">Warm up first</div>
+    <div class="muted" style="font-size:15px;line-height:1.5">Finish one ${esc(name)} run today and Prospector opens until midnight. Any score counts.</div>
+    <button class="btn small" type="button" id="gopractice">Start ${esc(name)}</button></div>`));
+  document.getElementById("gopractice").onclick = () => go(`#/p/${GATE_PRACTICE}/practice`);
+}
+
+function prosTabs(){
+  const me = PROS.me.name, mgr = PROS.me.role === "Manager";
+  const active = i => i.status !== "Archived";
+  const t = [["mine", "My queue", i => i.owner === me && active(i)],
+             ["pool", "Open pool", i => !i.owner && active(i)],
+             ["archived", "Archived", i => !active(i) && (mgr || i.owner === me)]];
+  if (mgr) t.push(["all", "All active", active]);
+  return t;
+}
+
+function prosRender(pane, tab){
+  const tabs = prosTabs();
+  const cur = tabs.find(t => t[0] === tab) || tabs[0];
+  const old = document.querySelector("[data-prostabs]"); if (old) old.remove();
+  const bar = tabBar(tabs.map(([k, l, f]) => [k, `${l} (${PROS.items.filter(f).length})`]), cur[0], t => `#/prospector/${t}`).firstElementChild;
+  bar.dataset.prostabs = "1";
+  pane.before(bar);
+  const items = PROS.items.filter(cur[2]).sort((a, b) => (a.tier || "Z").localeCompare(b.tier || "Z") || String(b.created).localeCompare(String(a.created)));
+  pane.replaceChildren();
+  if (!items.length){
+    pane.appendChild(h(`<div class="card muted" style="font-size:15px">${cur[0] === "mine" ? "Nothing waiting. Check the open pool." : "Nothing here right now."}</div>`));
+    return;
+  }
+  items.forEach(i => pane.appendChild(prosCard(i, pane, cur[0])));
+}
+
+function prosCard(i, pane, tab){
+  const mgr = PROS.me.role === "Manager";
+  const archived = i.status === "Archived";
+  const el = h(`<div class="card stack lead" style="gap:12px">
+    <div class="between" style="align-items:flex-start">
+      <div style="min-width:0">
+        <div style="font-size:19px;font-weight:800">${esc(i.company)}</div>
+        <div class="muted" style="font-size:14px;margin-top:2px">${esc(i.contact_name || "Contact not confirmed")}${i.contact_title ? ", " + esc(i.contact_title) : ""}</div>
+      </div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        <span class="chip fwd">${esc(PROS_TRIGGER[i.trigger] || "Leadership hire")}</span>
+        ${i.tier ? `<span class="chip on">Tier ${esc(i.tier)}</span>` : ""}
+      </div>
+    </div>
+    ${i.industry || i.job_title ? `<div class="faint" style="font-size:13px">${[i.industry, i.job_title ? "Posted: " + i.job_title : ""].filter(Boolean).map(esc).join(" · ")}</div>` : ""}
+    <div class="links">
+      ${i.zoominfo_url ? `<a href="${esc(i.zoominfo_url)}" target="_blank" rel="noopener">ZoomInfo company page</a>` : `<span>${i.zoominfo_id === "not found" ? "Not in ZoomInfo" : "ZoomInfo link pending"}</span>`}
+      ${i.contact_linkedin ? `<a href="${esc(i.contact_linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ""}
+      ${i.domain && !/^name:/.test(i.domain) ? `<a href="https://${esc(i.domain)}" target="_blank" rel="noopener">${esc(i.domain)}</a>` : ""}
+    </div>
+    ${mgr && !archived ? `<div style="max-width:300px"><label>Assigned to</label><select data-f="assign"><option value="">Open pool</option>${PROS.team.map(n => `<option${n === i.owner ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></div>` : ""}
+    ${i.why_now ? `<div class="note why">${esc(i.why_now)}</div>` : ""}
+    <div data-slot></div>
+    <details><summary class="muted" style="font-size:14px;cursor:pointer">Call opener, LinkedIn angle, sources</summary>
+      <div class="stack" style="gap:12px;margin-top:10px">
+        <div><div class="eyebrow">Call opener</div><div style="font-size:15px;line-height:1.5;margin-top:4px">${esc(i.call_opener || "None")}</div></div>
+        <div><div class="eyebrow">LinkedIn comment angle</div><div style="font-size:15px;line-height:1.5;margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">${esc(i.linkedin_angle || "None")}</div></div>
+        <div><div class="eyebrow">Sources (check before you send)</div>${String(i.sources || "").split("\n").filter(Boolean).map(u => `<div style="font-size:13px;margin-top:4px;overflow-wrap:anywhere"><a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\/(www\.)?/, "").slice(0, 90))}</a></div>`).join("") || `<div class="muted" style="font-size:14px">None</div>`}</div>
+      </div></details>
+  </div>`).firstElementChild;
+
+  const slot = el.querySelector("[data-slot]");
+  if (archived){
+    const disp = i.disposition + (i.disposition_reason ? ": " + i.disposition_reason : "") + (i.disposition_note ? " (" + i.disposition_note + ")" : "");
+    const done = [["step_email", "email"], ["step_call", "call"], ["step_linkedin", "LinkedIn"]].filter(([k]) => i[k] === "Y").map(x => x[1]).join(", ");
+    slot.replaceWith(h(`<div class="stack" style="gap:10px">
+      <div class="muted" style="font-size:14px">${esc(disp)}${done ? " · Steps: " + esc(done) : ""}${mgr && i.owner ? " · " + esc(i.owner) : ""}</div>
+      <div class="row" style="flex-wrap:wrap">
+        ${i.disposition === "Worked" ? `<div style="min-width:220px;max-width:280px"><select data-f="outcome">${PROS_OUTCOMES.map(o => `<option value="${esc(o)}"${o === i.outcome ? " selected" : ""}>${esc(o || "Outcome...")}</option>`).join("")}</select></div>` : ""}
+        <button class="btn ghost small" type="button" data-a="restore">Restore</button>
+      </div></div>`));
+  } else {
+    slot.replaceWith(h(`<div class="stack" style="gap:12px">
+      ${i.qa ? `<div class="qa">${ICON.warn}<span>${esc(i.qa)}</span></div>` : ""}
+      <div><label>To</label><input type="email" data-f="to" value="${esc(i.to)}" placeholder="Email from ZoomInfo"></div>
+      <div><label>Subject</label><input type="text" data-f="subject" value="${esc(i.subject)}"></div>
+      <div><label>Email</label><textarea data-f="body">${esc(i.body)}</textarea><div class="faint mono" data-wc style="font-size:12px;text-align:right;margin-top:4px"></div></div>
+      <div class="steps">${[["step_email", "Email sent"], ["step_call", "Called"], ["step_linkedin", "LinkedIn touch"]].map(([k, l]) => `<label class="${i[k] === "Y" ? "done" : ""}"><input type="checkbox" data-step="${k}"${i[k] === "Y" ? " checked" : ""}>${l}</label>`).join("")}</div>
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        ${!i.owner ? `<button class="btn small" type="button" data-a="claim">Claim</button>` : ""}
+        <button class="btn small${i.owner ? "" : " ghost"}" type="button" data-a="outlook">Open in Outlook</button>
+        <button class="btn ghost small" type="button" data-a="mailto">Outlook desktop</button>
+        <button class="btn ghost small" type="button" data-a="archive">Archive</button>
+        <button class="btn danger small" type="button" data-a="notfit">Not a fit</button>
+        <button class="btn ghost small" type="button" data-a="owned">Owned by another rep</button>
+        ${i.owner === PROS.me.name && !mgr ? `<button class="btn ghost small" type="button" data-a="release">Release</button>` : ""}
+      </div>
+      <div data-panel></div></div>`));
+  }
+
+  const q = sel => el.querySelector(sel);
+  const save = (patch, after) => papi("update", {id: i.id, patch})
+    .then(d => { Object.assign(i, d.item); if (after) after(); })
+    .catch(e => { if (e.message !== "signed out") prosToast(e.message); });
+  const rerender = msg => { if (msg) prosToast(msg); prosRender(pane, tab); };
+  const wc = q("[data-wc]");
+  const setWc = () => { if (wc) wc.textContent = wordCount(q('[data-f="body"]').value) + " words"; };
+  setWc();
+  el.querySelectorAll("input[data-f], textarea[data-f]").forEach(f => f.addEventListener("input", () => {
+    const k = f.dataset.f; i[k] = f.value; if (k === "body") setWc();
+    clearTimeout(prosTimers[i.id + k]);
+    prosTimers[i.id + k] = setTimeout(() => save({[k]: f.value}), 900);
+  }));
+  const assign = q('[data-f="assign"]');
+  if (assign) assign.onchange = () => save({assign: assign.value}, () => rerender(assign.value ? "Assigned to " + assign.value : "Moved to the open pool"));
+  const oc = q('[data-f="outcome"]');
+  if (oc) oc.onchange = () => save({outcome: oc.value}, () => prosToast("Outcome saved"));
+  el.querySelectorAll("[data-step]").forEach(c => c.onchange = () => {
+    c.parentElement.classList.toggle("done", c.checked);
+    save({[c.dataset.step]: c.checked}, () => { if (tab === "pool") rerender(); });
+  });
+  const needEmail = () => { if (!i.to){ prosToast("Add the email address first"); q('[data-f="to"]').focus(); return true; } return false; };
+  const on = (a, fn) => { const b = q(`[data-a="${a}"]`); if (b) b.onclick = fn; };
+  on("claim", () => save({claim: true}, () => rerender("Added to your queue")));
+  on("release", () => save({release: true}, () => rerender("Released to the open pool")));
+  on("outlook", () => { if (needEmail()) return; window.open(prosOutlook(i), "_blank", "noopener"); save({to: i.to, subject: i.subject, body: i.body, opened: true}); });
+  on("mailto", () => { if (needEmail()) return; window.location.href = prosMailto(i); save({to: i.to, subject: i.subject, body: i.body, opened: true}); });
+  on("archive", () => save({archive: true}, () => rerender("Archived")));
+  on("restore", () => save({restore: true}, () => rerender("Back in the queue")));
+  on("notfit", () => prosPanel(q("[data-panel]"), "notfit", save, rerender));
+  on("owned", () => prosPanel(q("[data-panel]"), "owned", save, rerender));
+  return el;
+}
+
+function prosPanel(slot, kind, save, rerender){
+  if (kind === "owned"){
+    slot.replaceChildren(h(`<div class="card stack" style="gap:10px;background:var(--surface2)">
+      <div style="font-size:14px;color:var(--text2)">Archives this lead with no action and keeps the company out of future queues.</div>
+      <div class="row"><button class="btn small" type="button" data-ok style="width:auto">Confirm</button><button class="btn ghost small" type="button" data-x>Cancel</button></div></div>`));
+    slot.querySelector("[data-ok]").onclick = () => save({owned: true}, () => rerender("Archived as owned by another rep"));
+  } else {
+    slot.replaceChildren(h(`<div class="card stack" style="gap:10px;background:var(--surface2)">
+      <div><label>Why isn't it a fit?</label><select data-r><option value="">Pick a reason...</option>${PROS.reasons.map(r => `<option>${esc(r)}</option>`).join("")}</select></div>
+      <div><label>What made it a bad fit? Optional, and it teaches the research step.</label><input type="text" data-n maxlength="300"></div>
+      <div class="row"><button class="btn danger small" type="button" data-ok>Mark not a fit</button><button class="btn ghost small" type="button" data-x>Cancel</button></div></div>`));
+    slot.querySelector("[data-ok]").onclick = () => {
+      const r = slot.querySelector("[data-r]").value;
+      if (!r) return prosToast("Pick a reason");
+      save({notFit: {reason: r, note: slot.querySelector("[data-n]").value}}, () => rerender("Marked not a fit. This company won't come back."));
+    };
+  }
+  slot.querySelector("[data-x]").onclick = () => slot.replaceChildren();
+}
+
+// Coaching: Prospector by rep.
+async function paneProspectorAdmin(pane){
+  const d = await papi("summary");
+  const reps = d.summary.reps.sort((a, b) => a.rep === "(open pool)" ? 1 : b.rep === "(open pool)" ? -1 : a.rep.localeCompare(b.rep));
+  const tot = k => reps.reduce((n, r) => n + (r[k] || 0), 0);
+  const st = d.summary.stages || {};
+  const researching = ["RESEARCH_PENDING", "RESEARCHING", "POSTS_PENDING", "POSTS_RUNNING", "WRITE_PENDING", "WRITING"].reduce((n, k) => n + (st[k] || 0), 0);
+  const tile = (label, v) => `<div><div class="eyebrow">${label}</div><div class="mono" style="font-size:22px;margin-top:4px">${v}</div></div>`;
+  pane.replaceChildren(h(`
+    <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px">
+      ${tile("Active leads", tot("active"))}${tile("Being researched", researching)}${tile("Emails sent", tot("emails"))}
+      ${tile("Replies", tot("replied"))}${tile("Meetings", tot("meetings"))}${tile("Not a fit", tot("not_fit"))}
+    </div>
+    <div class="card"><div class="between" style="margin-bottom:8px"><div class="eyebrow">By rep</div><button class="btn ghost small" type="button" id="openpros">Open Prospector</button></div>
+      <div class="scroll-x"><table>
+      <thead><tr><th>Rep</th><th>Practiced today</th><th>Active</th><th>Emails</th><th>Calls</th><th>LinkedIn</th><th>Archived</th><th>Replies</th><th>Meetings</th><th>Not a fit</th><th>Owned elsewhere</th><th>Last activity</th></tr></thead>
+      <tbody>${reps.map(r => `<tr><td style="font-weight:700">${esc(r.rep)}</td>
+        <td>${r.practiced_today == null ? "" : r.practiced_today ? `<span class="chip fwd">Yes</span>` : `<span class="chip miss">Not yet</span>`}</td>
+        ${["active", "emails", "calls", "linkedin", "worked", "replied", "meetings", "not_fit", "owned"].map(k => `<td class="mono">${r[k]}</td>`).join("")}
+        <td class="faint" style="font-size:13px;white-space:nowrap">${r.last ? esc(fmtDate(r.last)) : ""}</td></tr>`).join("")}</tbody></table></div></div>
+    <div class="faint" style="font-size:12px">Live from the Signal Engine sheet. Practiced today counts any finished ${esc(practiceName(GATE_PRACTICE))} run since midnight Eastern.</div>`));
+  document.getElementById("openpros").onclick = () => go("#/prospector/all");
+}
+
 // ======================================================================= coaching (admins)
 // One view per practice (team progress and team history, with rep drill-down), plus People & teams.
 async function adminTeams(){
@@ -702,14 +958,15 @@ function wireTeamPicker(){ const s = document.getElementById("tsel"); if (s) s.o
 async function renderAdminPage(section, tab){
   if (!PRACTICES) await practiceList();
   const avail = PRACTICES.filter(p => p.available);
-  const FLAT = ["usage", "reports", "people"];
+  const FLAT = ["usage", "reports", "people"].concat(PROS_API ? ["prospector"] : []);
   if (!section || (!FLAT.includes(section) && !avail.find(p => p.id === section))) return go("#/admin/usage");
-  const sections = [["usage", "Usage"]].concat(PRACTICES.map(p => [p.id, p.available ? practiceShort(p) : practiceShort(p) + " · soon", !p.available]), [["reports", "Reports"], ["people", "People & teams"]]);
+  const sections = [["usage", "Usage"]].concat(PROS_API ? [["prospector", "Prospector"]] : [], PRACTICES.map(p => [p.id, p.available ? practiceShort(p) : practiceShort(p) + " · soon", !p.available]), [["reports", "Reports"], ["people", "People & teams"]]);
   const pane = pageShell({wide: true, title: "Coaching", sub: ME.super_admin ? "Every team" : (ME.team_code || "")});
   pane.before(tabBar(sections, section, s => FLAT.includes(s) ? `#/admin/${s}` : `#/admin/${s}/progress`));
   if (section === "usage") return fill(pane, () => paneUsage(pane));
   if (section === "people") return fill(pane, () => panePeople(pane));
   if (section === "reports") return fill(pane, () => paneReports(pane));
+  if (section === "prospector") return fill(pane, () => paneProspectorAdmin(pane));
   const sub = tabBar([["progress","Team progress"],["history","Team history"]], tab, t => `#/admin/${section}/${t}`);
   sub.firstElementChild.style.maxWidth = "420px";
   pane.before(sub);
