@@ -955,19 +955,21 @@ async function paneProspectorAdmin(pane){
   const st = d.summary.stages || {};
   const researching = ["RESEARCH_PENDING", "RESEARCHING", "POSTS_PENDING", "POSTS_RUNNING", "WRITE_PENDING", "WRITING"].reduce((n, k) => n + (st[k] || 0), 0);
   const tile = (label, v) => `<div><div class="eyebrow">${label}</div><div class="mono" style="font-size:22px;margin-top:4px">${v}</div></div>`;
+  const idle = r => !r.idle_leads ? `<span class="faint">None</span>`
+    : `<span class="chip ${r.idle_days >= 2 ? "miss" : ""}">${r.idle_days} day${r.idle_days === 1 ? "" : "s"}</span><span class="faint" style="font-size:12px;margin-left:6px">${r.idle_leads} lead${r.idle_leads === 1 ? "" : "s"}</span>`;
   pane.replaceChildren(h(`
     <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px">
-      ${tile("Active leads", tot("active"))}${tile("Being researched", researching)}${tile("Emails sent", tot("emails"))}
-      ${tile("Replies", tot("replied"))}${tile("Meetings", tot("meetings"))}${tile("Not a fit", tot("not_fit"))}
+      ${tile("Active leads", tot("active"))}${tile("Being researched", researching)}${tile("Archived", tot("worked"))}${tile("Sitting idle", tot("idle_leads"))}
     </div>
     <div class="card"><div class="between" style="margin-bottom:8px"><div class="eyebrow">By rep</div><button class="btn ghost small" type="button" id="openpros">Open Prospector</button></div>
       <div class="scroll-x"><table>
-      <thead><tr><th>Rep</th><th>Practiced today</th><th>Active</th><th>Emails</th><th>Calls</th><th>LinkedIn</th><th>Archived</th><th>Replies</th><th>Meetings</th><th>Not a fit</th><th>Owned elsewhere</th><th>Last activity</th></tr></thead>
+      <thead><tr><th>Rep</th><th>Practiced today</th><th>Active</th><th>Archived</th><th>Not a fit</th><th>Owned elsewhere</th><th>Last activity</th><th>Days idle</th></tr></thead>
       <tbody>${reps.map(r => `<tr><td style="font-weight:700">${esc(r.rep)}</td>
         <td>${r.practiced_today == null ? "" : r.practiced_today ? `<span class="chip fwd">Yes</span>` : `<span class="chip miss">Not yet</span>`}</td>
-        ${["active", "emails", "calls", "linkedin", "worked", "replied", "meetings", "not_fit", "owned"].map(k => `<td class="mono">${r[k]}</td>`).join("")}
-        <td class="faint" style="font-size:13px;white-space:nowrap">${r.last ? esc(fmtDate(r.last)) : ""}</td></tr>`).join("")}</tbody></table></div></div>
-    <div class="faint" style="font-size:12px">Live from the Signal Engine sheet. Practiced today counts any finished ${esc(practiceName(GATE_PRACTICE))} run since midnight Eastern.</div>`));
+        ${["active", "worked", "not_fit", "owned"].map(k => `<td class="mono">${r[k]}</td>`).join("")}
+        <td class="faint" style="font-size:13px;white-space:nowrap">${r.last ? esc(fmtDate(r.last)) : ""}</td>
+        <td style="white-space:nowrap">${idle(r)}</td></tr>`).join("")}</tbody></table></div></div>
+    <div class="faint" style="font-size:12px">Live from the Signal Engine sheet. Practiced today counts any finished ${esc(practiceName(GATE_PRACTICE))} run since midnight Eastern. Days idle is how long the oldest untouched active lead has been sitting since it was assigned or last changed.</div>`));
   document.getElementById("openpros").onclick = () => go("#/prospector/all");
 }
 
