@@ -150,6 +150,8 @@ textarea:focus{outline:2px solid var(--green-t);outline-offset:2px}
 .links{display:flex;flex-wrap:wrap;gap:8px}
 .links a,.links span{font-size:13px;font-weight:700;padding:6px 12px;border-radius:999px;border:1px solid var(--line2);text-decoration:none;color:var(--muted)}
 .links a{color:var(--green-t);border-color:#2E5E45}
+.li{border:1px solid var(--line2);border-radius:12px;padding:12px}
+.li textarea{min-height:84px}
 .qa{display:flex;gap:8px;font-size:14px;line-height:1.45;color:#F5E3BC;background:var(--amber-bg);border:1px solid #6B4A17;border-radius:12px;padding:10px 12px}
 .ptoast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--line2);color:var(--text);padding:10px 16px;border-radius:12px;font-size:14px;font-weight:600;z-index:20;max-width:90vw}
 .hidden{display:none !important}
@@ -738,6 +740,18 @@ function wordCount(s){ return String(s || "").trim().split(/\s+/).filter(Boolean
 function prosOutlook(i){ return "https://outlook.office.com/mail/deeplink/compose?to=" + encodeURIComponent(i.to) + "&subject=" + encodeURIComponent(i.subject) + "&body=" + encodeURIComponent(i.body); }
 function prosLinkify(t){ return esc(t).replace(/https?:\/\/[^\s<>"]+/g, u => { const c = u.replace(/[.,;:)]+$/, ""); return `<a href="${c}" target="_blank" rel="noopener">${c.replace(/^https?:\/\/(www\.)?/, "").slice(0, 70)}</a>` + u.slice(c.length); }); }
 function prosQa(qa){ return String(qa || "").split("; ").filter(x => x && !/^add email/i.test(x)).join("; "); }
+function prosComment(a){
+  const lines = String(a || "").trim().split("\n");
+  const last = lines[lines.length - 1] || "";
+  const url = /^https?:\/\/\S+$/.test(last.trim()) ? last.trim() : "";
+  return {text: (url ? lines.slice(0, -1) : lines).join("\n").trim(), url};
+}
+function prosCopy(text){
+  if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text);
+  const t = document.createElement("textarea"); t.value = text; t.style.position = "fixed"; t.style.opacity = "0";
+  document.body.appendChild(t); t.select(); try { document.execCommand("copy"); } finally { t.remove(); }
+  return Promise.resolve();
+}
 function prosMailto(i){ return "mailto:" + encodeURIComponent(i.to).replace(/%40/g, "@") + "?subject=" + encodeURIComponent(i.subject) + "&body=" + encodeURIComponent(i.body); }
 
 // Home: the Prospector card, with today's lock status.
@@ -826,10 +840,9 @@ function prosCard(i, pane, tab){
     ${mgr && !archived ? `<div style="max-width:300px"><label>Assigned to</label><select data-f="assign"><option value="">Open pool</option>${PROS.team.map(n => `<option${n === i.owner ? " selected" : ""}>${esc(n)}</option>`).join("")}</select></div>` : ""}
     ${i.why_now ? `<div class="note why">${esc(i.why_now)}</div>` : ""}
     <div data-slot></div>
-    <details><summary class="muted" style="font-size:14px;cursor:pointer">Call opener, LinkedIn angle, sources</summary>
+    <details><summary class="muted" style="font-size:14px;cursor:pointer">Call opener and sources</summary>
       <div class="stack" style="gap:12px;margin-top:10px">
         <div><div class="eyebrow">Call opener</div><div style="font-size:15px;line-height:1.5;margin-top:4px">${esc(i.call_opener || "None")}</div></div>
-        <div><div class="eyebrow">LinkedIn comment angle</div><div style="font-size:15px;line-height:1.5;margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere">${i.linkedin_angle ? prosLinkify(i.linkedin_angle) : "None"}</div></div>
         <div><div class="eyebrow">Sources (check before you send)</div>${String(i.sources || "").split("\n").filter(Boolean).map(u => `<div style="font-size:13px;margin-top:4px;overflow-wrap:anywhere"><a href="${esc(u)}" target="_blank" rel="noopener">${esc(u.replace(/^https?:\/\/(www\.)?/, "").slice(0, 90))}</a></div>`).join("") || `<div class="muted" style="font-size:14px">None</div>`}</div>
       </div></details>
   </div>`).firstElementChild;
@@ -857,7 +870,8 @@ function prosCard(i, pane, tab){
         <button class="btn ghost small" type="button" data-a="owned">Owned by another rep</button>
         ${i.owner === PROS.me.name && !mgr ? `<button class="btn ghost small" type="button" data-a="release">Release</button>` : ""}
       </div>
-      <div data-panel></div></div>`));
+      <div data-panel></div>
+      ${prosLiBlock(i)}</div>`));
   }
 
   const q = sel => el.querySelector(sel);
@@ -886,10 +900,32 @@ function prosCard(i, pane, tab){
     save({to: i.to, subject: i.subject, body: i.body, opened: true, step_email: true, archive: true},
       () => rerender("Opened in Outlook and marked done. Subject and body are also on your clipboard."));
   });
+  const liText = () => { const t = q("[data-li]"); return t ? t.value.trim() : ""; };
+  on("copyli", () => prosCopy(liText()).then(() => prosToast("Comment copied. Paste it under the post.")));
+  on("copyopen", () => prosCopy(liText()).then(() => { window.open(prosComment(i.linkedin_angle).url, "_blank", "noopener"); prosToast("Comment copied. Paste it under the post."); }));
+  on("newli", () => {
+    const b = q('[data-a="newli"]'); b.disabled = true; b.textContent = "Writing...";
+    papi("comment", {id: i.id})
+      .then(d => { Object.assign(i, d.item); el.replaceWith(prosCard(i, pane, tab)); prosToast("New comment ready"); })
+      .catch(e => { b.disabled = false; b.textContent = "Write a new one"; if (e.message !== "signed out") prosToast(e.message); });
+  });
   on("restore", () => save({restore: true}, () => rerender("Back in the queue")));
   on("notfit", () => prosPanel(q("[data-panel]"), "notfit", save, rerender));
   on("owned", () => prosPanel(q("[data-panel]"), "owned", save, rerender));
   return el;
+}
+
+function prosLiBlock(i){
+  const c = prosComment(i.linkedin_angle);
+  if (!c.text && !i.contact_linkedin) return "";
+  return `<div class="li stack" style="gap:8px">
+    <div class="between"><div class="eyebrow">LinkedIn comment</div>${c.url ? `<a href="${esc(c.url)}" target="_blank" rel="noopener" style="font-size:13px;font-weight:700">Open the post</a>` : ""}</div>
+    ${c.text ? `<textarea data-li>${esc(c.text)}</textarea>` : `<div class="muted" style="font-size:14px">No comment yet.</div>`}
+    <div class="row" style="flex-wrap:wrap;gap:8px">
+      ${c.text ? `<button class="btn small" type="button" data-a="copyli">Copy comment</button>` : ""}
+      ${c.text && c.url ? `<button class="btn ghost small" type="button" data-a="copyopen">Copy and open post</button>` : ""}
+      ${i.contact_linkedin ? `<button class="btn ghost small" type="button" data-a="newli">${c.text ? "Write a new one" : "Write a comment"}</button>` : ""}
+    </div></div>`;
 }
 
 function prosPanel(slot, kind, save, rerender){
