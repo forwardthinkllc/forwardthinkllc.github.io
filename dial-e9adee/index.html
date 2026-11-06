@@ -771,7 +771,11 @@ function prosHubCard(pane){
     st.textContent = "Locked: practice first";
     st.style.background = "var(--amber-bg)";
     st.style.color = "var(--amber-t)";
-  }).catch(() => { const st = document.getElementById("prosst"); if (st){ st.textContent = "NEW"; st.classList.add("new"); } });
+  }).catch(e => {
+    // Not on the Prospector team (or Prospector unreachable): hide the card rather than show a dead end.
+    if (/not set up/i.test(e.message)) return card.remove();
+    const st = document.getElementById("prosst"); if (st){ st.textContent = "NEW"; st.classList.add("new"); }
+  });
 }
 
 async function renderProspector(tab){
@@ -1095,9 +1099,10 @@ function wireTeamPicker(){ const s = document.getElementById("tsel"); if (s) s.o
 async function renderAdminPage(section, tab){
   if (!PRACTICES) await practiceList();
   const avail = PRACTICES.filter(p => p.available);
-  const FLAT = ["usage", "reports", "people"].concat(PROS_API ? ["prospector"] : []);
+  const PROS_ADMIN = PROS_API && ME.super_admin;
+  const FLAT = ["usage", "reports", "people"].concat(PROS_ADMIN ? ["prospector"] : []);
   if (!section || (!FLAT.includes(section) && !avail.find(p => p.id === section))) return go("#/admin/usage");
-  const sections = [["usage", "Usage"]].concat(PROS_API ? [["prospector", "Prospector"]] : [], PRACTICES.map(p => [p.id, p.available ? practiceShort(p) : practiceShort(p) + " · soon", !p.available]), [["reports", "Reports"], ["people", "People & teams"]]);
+  const sections = [["usage", "Usage"]].concat(PROS_ADMIN ? [["prospector", "Prospector"]] : [], PRACTICES.map(p => [p.id, p.available ? practiceShort(p) : practiceShort(p) + " · soon", !p.available]), [["reports", "Reports"], ["people", "People & teams"]]);
   const pane = pageShell({wide: true, title: "Coaching", sub: ME.super_admin ? "Every team" : (ME.team_code || "")});
   pane.before(tabBar(sections, section, s => FLAT.includes(s) ? `#/admin/${s}` : `#/admin/${s}/progress`));
   if (section === "usage") return fill(pane, () => paneUsage(pane));
