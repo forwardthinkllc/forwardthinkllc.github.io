@@ -69,6 +69,7 @@ label{font-size:13px;font-weight:600;color:var(--text2);display:block;margin-bot
 .seg button[aria-pressed="true"]{background:var(--surface2);color:var(--text)}
 table{width:100%;border-collapse:collapse;font-size:14px} th{text-align:left;color:var(--muted);font-weight:600;font-size:12px;padding:8px 6px;border-bottom:1px solid var(--line)} td{padding:10px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
 .scroll-x{overflow-x:auto}
+details>summary::-webkit-details-marker{display:none}
 /* ---- call screen ---- */
 .call{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;padding:max(56px,env(safe-area-inset-top)) 20px max(32px,env(safe-area-inset-bottom));gap:12px;z-index:10}
 .avatar{position:relative;width:112px;height:112px}
@@ -949,7 +950,7 @@ function prosPanel(slot, kind, save, rerender){
 
 // Coaching: Prospector by rep.
 async function paneProspectorAdmin(pane){
-  const d = await papi("summary");
+  const [d, qd] = await Promise.all([papi("summary"), papi("queue").catch(() => null)]);
   const reps = d.summary.reps.sort((a, b) => a.rep === "(open pool)" ? 1 : b.rep === "(open pool)" ? -1 : a.rep.localeCompare(b.rep));
   const tot = k => reps.reduce((n, r) => n + (r[k] || 0), 0);
   const st = d.summary.stages || {};
@@ -969,8 +970,110 @@ async function paneProspectorAdmin(pane){
         ${["active", "worked", "not_fit", "owned"].map(k => `<td class="mono">${r[k]}</td>`).join("")}
         <td class="faint" style="font-size:13px;white-space:nowrap">${r.last ? esc(fmtDate(r.last)) : ""}</td>
         <td style="white-space:nowrap">${idle(r)}</td></tr>`).join("")}</tbody></table></div></div>
+    <div id="sellers"></div>
     <div class="faint" style="font-size:12px">Live from the Signal Engine sheet. Practiced today counts any finished ${esc(practiceName(GATE_PRACTICE))} run since midnight Eastern. Days idle is how long the oldest untouched active lead has been sitting since it was assigned or last changed.</div>`));
   document.getElementById("openpros").onclick = () => go("#/prospector/all");
+  if (qd && qd.items) sellerList(document.getElementById("sellers"), qd);
+  pane.querySelectorAll("tbody tr").forEach((tr, n) => {
+    tr.style.cursor = "pointer";
+    tr.onclick = () => { const f = document.querySelector('[data-sf="rep"]'); if (!f) return;
+      f.value = reps[n].rep; f.dispatchEvent(new Event("change")); document.getElementById("sellers").scrollIntoView({behavior: "smooth"}); };
+  });
+}
+
+// Leader view: every lead, grouped by seller, with filters. Idle = days since the lead
+// was assigned or last changed, the same rule the "Days idle" column uses.
+const SL_KEY = "pros_seller_filters";
+function slIdle(i){ const t = new Date(i.updated || i.created).getTime(); return isNaN(t) ? 0 : Math.floor((Date.now() - t) / 864e5); }
+function sellerList(box, qd){
+  const items = qd.items;
+  const reps = qd.team.filter(n => n !== qd.me.name);
+  items.forEach(i => { if (i.owner && !reps.includes(i.owner)) reps.push(i.owner); });
+  reps.sort();
+  let f = {rep: "", status: "idle1", trigger: "", q: "", sort: "idle"};
+  try { Object.assign(f, JSON.parse(store.get(SL_KEY) || "{}")); } catch (e) {}
+  const opt = (v, l, cur) => `<option value="${esc(v)}"${v === cur ? " selected" : ""}>${esc(l)}</option>`;
+  const triggers = [...new Set(items.map(i => i.trigger).filter(Boolean))];
+  box.replaceChildren(h(`<div class="card stack" style="gap:12px">
+    <div class="between"><div class="eyebrow">Seller by seller</div><button class="btn ghost small" type="button" data-sx="toggle">Expand all</button></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+      <select data-sf="rep">${opt("", "All sellers", f.rep)}${reps.map(n => opt(n, n, f.rep)).join("")}${opt("(open pool)", "Open pool", f.rep)}</select>
+      <select data-sf="status">${[["idle1","Idle 1+ day"],["idle3","Idle 3+ days"],["idle7","Idle 7+ days"],["active","All active"],["worked","Archived: worked"],["closed","Archived: not a fit or owned"],["all","Everything"]].map(([v,l]) => opt(v, l, f.status)).join("")}</select>
+      <select data-sf="trigger">${opt("", "Any trigger", f.trigger)}${triggers.map(t => opt(t, PROS_TRIGGER[t] || t, f.trigger)).join("")}</select>
+      <select data-sf="sort">${[["idle","Most idle first"],["new","Newest first"],["company","Company A to Z"]].map(([v,l]) => opt(v, l, f.sort)).join("")}</select>
+      <input type="text" data-sf="q" placeholder="Search company or contact" value="${esc(f.q)}">
+    </div>
+    <div data-sl></div></div>`));
+  const list = box.querySelector("[data-sl]");
+  const pass = i => {
+    const arch = i.status === "Archived", d = slIdle(i);
+    if (f.rep && (i.owner || "(open pool)") !== f.rep) return false;
+    if (f.trigger && i.trigger !== f.trigger) return false;
+    if (f.q && !(i.company + " " + i.contact_name).toLowerCase().includes(f.q.toLowerCase())) return false;
+    switch (f.status){
+      case "idle1": return !arch && d >= 1;
+      case "idle3": return !arch && d >= 3;
+      case "idle7": return !arch && d >= 7;
+      case "active": return !arch;
+      case "worked": return arch && i.disposition === "Worked";
+      case "closed": return arch && i.disposition !== "Worked";
+    }
+    return true;
+  };
+  const sorter = (a, b) => f.sort === "company" ? a.company.localeCompare(b.company)
+    : f.sort === "new" ? String(b.created).localeCompare(String(a.created)) : slIdle(b) - slIdle(a);
+  const idleChip = d => `<span class="chip ${d >= 3 ? "back" : d >= 1 ? "miss" : "fwd"}">${d ? d + "d idle" : "Today"}</span>`;
+  const row = i => {
+    const arch = i.status === "Archived", d = slIdle(i);
+    const state = arch ? (i.disposition || "Archived") + (i.outcome ? " · " + i.outcome : "") : i.step_email === "Y" ? "Opened in Outlook" : "Not touched";
+    return `<details class="sl-lead" data-id="${esc(i.id)}" style="border-top:1px solid var(--line);padding:10px 0">
+      <summary style="cursor:pointer;list-style:none;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <span style="font-weight:700;flex:1;min-width:160px">${esc(i.company)}</span>
+        <span class="chip on">${esc(PROS_TRIGGER[i.trigger] || "Leadership hire")}</span>
+        ${arch ? `<span class="chip on">${esc(i.disposition || "Archived")}</span>` : idleChip(d)}
+      </summary>
+      <div class="stack" style="gap:8px;margin-top:10px;font-size:14px">
+        <div class="muted">${esc(i.contact_name || "Contact not confirmed")}${i.contact_title ? ", " + esc(i.contact_title) : ""}${i.tier ? " · Tier " + esc(i.tier) : ""}</div>
+        <div class="faint" style="font-size:13px">Added ${esc(fmtDate(i.created))} · Last change ${esc(fmtDate(i.updated || i.created))} · ${esc(state)}</div>
+        ${i.why_now ? `<div class="note why">${esc(i.why_now)}</div>` : ""}
+        ${i.subject && !arch ? `<div><span class="eyebrow">Email subject</span> ${esc(i.subject)}</div>` : ""}
+        ${arch && i.disposition_reason ? `<div class="faint">${esc(i.disposition_reason)}${i.disposition_note ? " (" + esc(i.disposition_note) + ")" : ""}</div>` : ""}
+        <div class="links">${i.contact_linkedin ? `<a href="${esc(i.contact_linkedin)}" target="_blank" rel="noopener">LinkedIn</a>` : ""}${i.zoominfo_url ? `<a href="${esc(i.zoominfo_url)}" target="_blank" rel="noopener">ZoomInfo</a>` : ""}</div>
+        ${arch ? "" : `<div class="row" style="gap:8px;flex-wrap:wrap;align-items:center"><div style="min-width:200px;max-width:260px"><select data-assign>${opt("", "Open pool", i.owner || "")}${qd.team.map(n => opt(n, n, i.owner || "")).join("")}</select></div><span class="faint" style="font-size:12px">Reassign</span></div>`}
+      </div></details>`;
+  };
+  const draw = () => {
+    store.set(SL_KEY, JSON.stringify(Object.assign({}, f, {q: ""})));
+    const shown = items.filter(pass).sort(sorter);
+    const groups = {};
+    shown.forEach(i => (groups[i.owner || "(open pool)"] = groups[i.owner || "(open pool)"] || []).push(i));
+    const names = (f.rep ? [f.rep] : reps.concat("(open pool)")).filter(n => groups[n] || f.rep);
+    if (!shown.length){ list.innerHTML = `<div class="muted" style="font-size:14px;padding:8px 0">Nothing matches these filters.</div>`; return; }
+    list.innerHTML = names.filter(n => groups[n]).map(n => {
+      const g = groups[n], act = items.filter(i => (i.owner || "(open pool)") === n && i.status !== "Archived");
+      const idleN = act.filter(i => slIdle(i) >= 1).length, oldest = act.reduce((m, i) => Math.max(m, slIdle(i)), 0);
+      return `<details class="card" data-rep="${esc(n)}" style="background:var(--surface2);margin-top:8px"${f.rep || names.length === 1 ? " open" : ""}>
+        <summary style="cursor:pointer;list-style:none" class="between">
+          <span style="font-weight:800;font-size:16px;white-space:nowrap">${esc(n === "(open pool)" ? "Open pool" : n)}</span>
+          <span class="row" style="gap:6px;flex-wrap:wrap;justify-content:flex-end">
+            <span class="chip on">${g.length} shown</span><span class="chip on">${act.length} active</span>
+            ${idleN ? `<span class="chip ${oldest >= 3 ? "back" : "miss"}">${idleN} idle · oldest ${oldest}d</span>` : `<span class="chip fwd">Nothing idle</span>`}
+          </span></summary>
+        <div style="margin-top:6px">${g.map(row).join("")}</div></details>`;
+    }).join("");
+    list.querySelectorAll("[data-assign]").forEach(sel => sel.onchange = () => {
+      const id = sel.closest("[data-id]").dataset.id, it = items.find(x => x.id === id);
+      papi("update", {id, patch: {assign: sel.value}})
+        .then(d => { Object.assign(it, d.item); prosToast(sel.value ? "Assigned to " + sel.value : "Moved to the open pool"); draw(); })
+        .catch(e => { if (e.message !== "signed out") prosToast(e.message); });
+    });
+  };
+  box.querySelectorAll("[data-sf]").forEach(el => el.addEventListener(el.tagName === "INPUT" ? "input" : "change", () => { f[el.dataset.sf] = el.value; draw(); }));
+  box.querySelector('[data-sx="toggle"]').onclick = e => {
+    const all = list.querySelectorAll("details"), open = e.target.textContent === "Expand all";
+    all.forEach(d => d.open = open); e.target.textContent = open ? "Collapse all" : "Expand all";
+  };
+  draw();
 }
 
 // ======================================================================= coaching (admins)
