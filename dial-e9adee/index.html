@@ -962,7 +962,13 @@ async function paneProspectorAdmin(pane){
   const tile = (label, v) => `<div><div class="eyebrow">${label}</div><div class="mono" style="font-size:22px;margin-top:4px">${v}</div></div>`;
   const idle = r => !r.idle_leads ? `<span class="faint">None</span>`
     : `<span class="chip ${r.idle_days >= 2 ? "miss" : ""}">${r.idle_days} day${r.idle_days === 1 ? "" : "s"}</span><span class="faint" style="font-size:12px;margin-left:6px">${r.idle_leads} lead${r.idle_leads === 1 ? "" : "s"}</span>`;
+  const hl = Object.entries(d.summary.health || {});
+  const HFIX = {"TheirStack": "Buy credits at app.theirstack.com, Settings, Billing.", "Apify": "Make a new API token in Apify (Settings, API and Integrations), then paste it in the sheet: Signal Engine menu, Set API keys.", "Claude (Anthropic)": "Check billing and the API key at console.anthropic.com.", "SEC Form D": "Needs a contact email added to the request. Ask Claude to add it."};
   pane.replaceChildren(h(`
+    ${hl.length ? `<div class="card stack" style="gap:8px;border-color:var(--red-t);background:var(--red-bg)">
+      <div style="font-weight:800;color:var(--red-t)">Lead sources need attention</div>
+      ${hl.map(([k, v]) => `<div style="font-size:14px;line-height:1.45"><b>${esc(k)}</b>: ${esc(v.why)} since ${esc(fmtDate(v.since))}. <span class="muted">${esc(HFIX[k] || "")}</span></div>`).join("")}
+    </div>` : ""}
     <div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px">
       ${tile("Active leads", tot("active"))}${tile("Being researched", researching)}${tile("Archived", tot("worked"))}${tile("Sitting idle", tot("idle_leads"))}
     </div>
