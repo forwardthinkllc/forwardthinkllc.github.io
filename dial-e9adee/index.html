@@ -7,8 +7,8 @@
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#0E1217">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Skills Practice">
-<title>Skills Practice</title>
+<meta name="apple-mobile-web-app-title" content="Sales Tools">
+<title>Sales Tools</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script>
@@ -247,7 +247,7 @@ function renderLogin(msg){
   $app.className = "wrap";
   $app.replaceChildren(h(`
     <div class="stack" style="margin-top:8vh">
-      <div><div class="eyebrow" style="color:var(--green-t)">Skills Practice</div>
+      <div><div class="eyebrow" style="color:var(--green-t)">Sales Tools</div>
       <h1 style="margin:6px 0 0;font-size:30px;font-weight:800">Sign in</h1></div>
       ${msg ? `<div class="note">${esc(msg)}</div>` : ""}
       <form id="f" class="stack" novalidate>
@@ -272,7 +272,7 @@ function renderInvite(token){
   $app.className = "wrap";
   $app.replaceChildren(h(`
     <div class="stack" style="margin-top:8vh">
-      <div><div class="eyebrow" style="color:var(--green-t)">Skills Practice</div>
+      <div><div class="eyebrow" style="color:var(--green-t)">Sales Tools</div>
       <h1 style="margin:6px 0 0;font-size:30px;font-weight:800">Set your password</h1>
       <p class="muted" style="margin:8px 0 0">At least 10 characters, with upper and lower case.</p></div>
       <form id="f" class="stack" novalidate>
@@ -342,7 +342,7 @@ async function renderHome(){
 // The bar at the top of every signed-in page.
 function pageShell({wide, title, sub, back, extra, brand}){
   $app.className = "wrap" + (wide ? " wide" : "");
-  brand = brand || "Skills Practice";
+  brand = brand || "Sales Tools";
   document.title = brand;
   const onAdmin = parseRoute().page === "admin";
   $app.replaceChildren(h(`
