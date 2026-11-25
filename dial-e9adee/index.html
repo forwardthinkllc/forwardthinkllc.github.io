@@ -402,7 +402,7 @@ async function renderHub(){
         ${stats}</button>`;
     };
     pane.replaceChildren(h(`
-      ${last ? `<button id="resume" class="btn" type="button">Continue ${esc(practiceShort(last))}</button>` : ""}
+      
       ${list.map(card).join("")}`));
     const resume = document.getElementById("resume");
     if (resume) resume.onclick = () => go(`#/p/${last.id}/practice`);
